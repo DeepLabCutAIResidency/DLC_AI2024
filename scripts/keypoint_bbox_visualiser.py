@@ -62,7 +62,8 @@ def visualize_coco_annotation(annotation_path, image_dir):
         # Bounding box visualization
         bbox = annotation["bbox"]
         x, y, w, h = bbox
-        cv2.rectangle(img, (int(x), int(y)), (int(w - x), int(h - y)), (0, 255, 0), 2)
+        annotation["bbox"] = x, y, w-x, h-y
+        cv2.rectangle(img, (int(x), int(y)), (int(w), int(h)), (0, 255, 0), 2)
 
         # Keypoint visualization (if available)
         if "keypoints" in annotation:
