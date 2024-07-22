@@ -20,8 +20,7 @@ def compute_brightness(img, x, y, radius=20):
     Returns:
         The average brightness of the region.
     """
-    # debug
-    print(x, y)
+    
     crop = img[max(0, y - radius):min(img.shape[0], y + radius), max(0, x - radius):min(img.shape[1], x + radius),:]
     return np.mean(crop)  # mean brightness
 
@@ -61,16 +60,15 @@ def visualize_coco_annotation(annotation_path, image_dir):
 
         # Bounding box visualization
         bbox = annotation["bbox"]
-        x, y, w, h = bbox
-        annotation["bbox"] = x, y, w-x, h-y
-        cv2.rectangle(img, (int(x), int(y)), (int(w), int(h)), (0, 255, 0), 2)
+        x1, y1, x2, y2 = bbox
+        cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
 
         # Keypoint visualization (if available)
         if "keypoints" in annotation:
             keypoints = np.array(annotation["keypoints"]).reshape(-1, 3)
 
             for i in range(0, len(keypoints)):
-                x, y, v = keypoints[i]
+                x1, y1, v = keypoints[i]
 
                 categories = data["categories"][0]
                 supercategory_name = categories["name"]
@@ -79,17 +77,17 @@ def visualize_coco_annotation(annotation_path, image_dir):
                 if v > 0:
                     cv2.circle(
                         img,
-                        center=(int(x), int(y)),
+                        center=(int(x1), int(y1)),
                         radius=7,
                         color=color_map[keypoint_label],
                         thickness=-1,
                     )
-                    bright = compute_brightness(img, int(x), int(y))
+                    bright = compute_brightness(img, int(x1), int(y1))
                     txt_color = (0, 0, 0) if bright > 128 else (255, 255, 255)
                     cv2.putText(
                         img,
                         keypoint_label,
-                        (int(x), int(y) - 15),
+                        (int(x1), int(y1) - 15),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5,
                         txt_color,
