@@ -8,7 +8,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-folder = "//folder/becell/Lab Projects/ERCstG_HighMemory/Data/Marc/DLC Residency 2024/bird_files/tiny_nabirds"
+folder = "//folder/becell/Lab Projects/ERCstG_HighMemory/Data/Marc/DLC Residency 2024/bird_files/cowbird"
 
 folder_tag = folder.split("/")[-1]
 train_file = f"{folder}/annotations/train.json"
@@ -19,6 +19,8 @@ files = [train_file, test_file]
 # Identify unusual boxes
 # =============================================================================
 
+bbox_widths = []
+bbox_heights = []
 bbox_areas = []
 bbox_aspect_ratios = []
 
@@ -36,22 +38,28 @@ for file in files:
                 area = width * height
                 aspect_ratio = width / height if height > 0 else 0
 
+                bbox_widths.append(width)
+                bbox_heights.append(height)
                 bbox_areas.append(area)
                 bbox_aspect_ratios.append(aspect_ratio)
 
-plt.figure(figsize=(12, 5))
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+fig.suptitle(folder_tag)  # Set the title for the entire figure
 
-plt.subplot(1, 2, 1)
-plt.hist(bbox_areas, bins=50, log=True)
-plt.title("Bounding Box Areas")
-plt.xlabel("Area")
-plt.ylabel("")
+ax1.scatter(bbox_widths, bbox_heights)
+ax1.set_title('')
+ax1.set_xlabel('Width')
+ax1.set_ylabel('Height')
 
-plt.subplot(1, 2, 2)
-plt.hist(bbox_aspect_ratios, bins=50, log=True)
-plt.title("Bounding Box Aspect Ratios")
-plt.xlabel("Aspect Ratio")
-plt.ylabel("")
+ax2.hist(bbox_areas, bins=50, log=False)
+ax2.set_title("")
+ax2.set_xlabel("Area (width * height)")
+ax2.set_ylabel("Frequency")
+
+ax3.hist(bbox_aspect_ratios, bins=50, log=False)
+ax3.set_title("")
+ax3.set_xlabel("Ratio (width / height)")
+ax3.set_ylabel("Frequency")
 
 plt.tight_layout()
 plt.show()
@@ -90,10 +98,11 @@ percent_occluded = keypoints_labeled_occluded / keypoints_total * 100
 percent_unlabeled = keypoints_unlabeled / keypoints_total * 100
 
 percentages = [percent_visible, percent_occluded, percent_unlabeled]
-labels = ["Visible", "Occluded", "Unlabeled"]
+labels = ["Visible (v=2)", "Occluded (v=1)", "Unlabeled (v=0)"]
 colors = ["green", "orange", "red"]
 
-plt.figure(figsize=(8, 3))
+plt.figure(figsize=(8, 2))
+plt.title(folder_tag)
 
 plt.barh(["Keypoints Visibility"], [percent_visible], color=colors[0], label=labels[0])
 plt.barh(
