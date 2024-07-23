@@ -7,6 +7,65 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+# TODO replace keypoint labels by master names from conversion table + consistent colors
+# TODO implement skipping images using arrows instead of exit button
+
+COLORS = ["back",
+"belly",
+"bill",
+"breast",
+"crown",
+"forehead",
+"left_eye",
+"left_leg",
+"left_wing_tip",
+"left_wrist",
+"nape",
+"right_eye",
+"right_leg",
+"right_wing_tip",
+"right_wrist",
+"tail_tip",
+"throat",
+"neck",
+"tail_left",
+"tail_right",
+"upper_spine",
+"upper_half_spine",
+"lower_half_spine",
+"right_foot",
+"left_foot",
+"left_half_chest",
+"right_half_chest",
+"chin",
+"left_tibia",
+"right_tibia",
+"lower_spine",
+"upper_half_neck",
+"lower_half_neck",
+"left_chest",
+"right_chest",
+"upper_neck",
+"left_wing_shoulder",
+"left_wing_elbow",
+"right_wing_shoulder",
+"right_wing_elbow",
+"upper_cere",
+"lower_cere"]
+
+COLOR_MAP = {
+    "bill": (0, 102, 204),
+    "crown": (0, 255, 0),
+    "nape": (255, 51, 51),
+    "left_eye": (102, 0, 204),
+    "right_eye": (255, 255, 102),
+    "belly": (255, 128, 0),
+    "breast": (0, 255, 255),
+    "back": (128, 0, 128),
+    "tail": (255, 0, 255),
+    "left_wing": (128, 128, 0),
+    "right_wing": (0, 128, 128),
+}
 
 def compute_brightness(img, x, y, radius=20):
     """Calculates the average brightness of a region around a point.
@@ -32,20 +91,6 @@ def visualize_coco_annotation(annotation_path, image_dir):
       annotation_path: Path to the COCO annotation JSON file.
       image_dir: Path to the directory containing the images.
     """
-    
-    color_map = {
-        "bill": (0, 102, 204),
-        "crown": (0, 255, 0),
-        "nape": (255, 51, 51),
-        "left_eye": (102, 0, 204),
-        "right_eye": (255, 255, 102),
-        "belly": (255, 128, 0),
-        "breast": (0, 255, 255),
-        "back": (128, 0, 128),
-        "tail": (255, 0, 255),
-        "left_wing": (128, 128, 0),
-        "right_wing": (0, 128, 128),
-    }
     
     with open(annotation_path, "r") as f:
         data = json.load(f)
@@ -79,7 +124,7 @@ def visualize_coco_annotation(annotation_path, image_dir):
                         img,
                         center=(int(x1), int(y1)),
                         radius=7,
-                        color=color_map[keypoint_label],
+                        color=COLOR_MAP[keypoint_label],
                         thickness=-1,
                     )
                     bright = compute_brightness(img, int(x1), int(y1))
