@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd 
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 
 def get_all_keypoints(data):
     ann = len(data["annotations"])
@@ -47,3 +49,17 @@ def to_df(features, labels):
     df['label'] = df.index
     
     return df
+
+def keypoint_kmeans(n_clusters, features):
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(features)
+    
+    kmeans = KMeans(init="random", n_clusters=n_clusters, n_init=10, max_iter=50, random_state=42)
+    # run Kmeans algo
+    kmeans.fit(scaled_features)    
+    
+    centers = kmeans.cluster_centers_
+    pred_labels = kmeans.labels_
+    
+    return scaled_features, centers, pred_labels 
+    
