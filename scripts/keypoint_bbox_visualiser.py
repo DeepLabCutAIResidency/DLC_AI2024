@@ -10,7 +10,7 @@ import random
 # TODO replace keypoint labels by master names from conversion table + consistent colors
 # TODO implement skipping images using arrows instead of exit button
 
-COLORS = ["back",
+BODYPARTS = ["back",
 "belly",
 "bill",
 "breast",
@@ -53,19 +53,8 @@ COLORS = ["back",
 "upper_cere",
 "lower_cere"]
 
-COLOR_MAP = {
-    "bill": (0, 102, 204),
-    "crown": (0, 255, 0),
-    "nape": (255, 51, 51),
-    "left_eye": (102, 0, 204),
-    "right_eye": (255, 255, 102),
-    "belly": (255, 128, 0),
-    "breast": (0, 255, 255),
-    "back": (128, 0, 128),
-    "tail": (255, 0, 255),
-    "left_wing": (128, 128, 0),
-    "right_wing": (0, 128, 128),
-}
+COLORS = list(np.random.choice(range(256), size=len(BODYPARTS)))
+
 
 def compute_brightness(img, x, y, radius=20):
     """Calculates the average brightness of a region around a point.
@@ -146,8 +135,8 @@ def visualize_coco_annotation(annotation_path, image_dir):
 
 if __name__ == "__main__":
     # replace by your local paths
-    # root = "/media/dikra/ADATA HD650/PhD/DATA/DLC24_Data/tiny_all_bird_merged_coco"
-    root = "/media/dikra/ADATA HD650/PhD/DATA/DLC24_Data/tiny_nabirds"
+    # root = "/media/dikra/PhD/DATA/DLC24_Data/tiny_all_bird_merged_coco"
+    root = "/media/dikra/PhD/DATA/DLC24_Data/tiny_nabirds"
     annotation_path = f"{root}/annotations/train.json"
     image_dir = f"{root}/images"
     visualize_coco_annotation(annotation_path, image_dir)
