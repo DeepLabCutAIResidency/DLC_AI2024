@@ -51,13 +51,13 @@ def plot_keypoint_percent(percent_visible, percent_occluded, percent_unlabeled, 
         color=colors[2],
         label=labels[2],
     )
+    ax.legend(loc="upper right")
     plt.gca().spines["top"].set_visible(False)
     plt.gca().spines["right"].set_visible(False)
     plt.gca().spines["left"].set_visible(False)
     plt.gca().spines["bottom"].set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.xlabel("% of Keypoints")
-    ax.legend(loc="upper right")
     plt.xlim(0, 100)
     plt.tight_layout()
     return ax
