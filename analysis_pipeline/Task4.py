@@ -157,7 +157,7 @@ def show_image(image_dir, ax):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for Matplotlib
 
     # Bounding box visualization
-    # TODO currently the code filters based on dataset, from manual inspection, if bbox is visualized from the format [x1, y1, width, height] or [x1, y1, x2, y2] --> Write code that can automatically detect this and apply the right format.
+    # TODO currently the code filters based on dataset, from manual inspection, if bbox is visualized from the format [x1, y1, width, height] or [x1, y1, x2, y2] --> consider writing code that can automatically detect this and apply the right format.
     bbox = annotation["bbox"]
     dataset = image_info.get("source_dataset", "")  # Get dataset information
 
