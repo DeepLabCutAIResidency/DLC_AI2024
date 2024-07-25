@@ -126,11 +126,12 @@ def calculate_ratio(bbox_widths, bbox_heights):
 
 
 def compute_keypoints(data):
+    nv = 0
     keypoints_total = 0
     keypoints_unlabeled = 0
     keypoints_labeled_occluded = 0
-    keypoint_labeled_visible = 0
-    annotations = data["annotations"]
+    keypoints_labeled_visible = 0
+    annotations = data["annotations"][0]
     for ann in annotations:
         if "keypoints" in ann:
             keypoints = ann["keypoints"]
@@ -142,8 +143,16 @@ def compute_keypoints(data):
                 elif visibility == 1:
                     keypoints_labeled_occluded += 1
                 elif visibility == 2:
-                    keypoint_labeled_visible += 1
-    percent_visible = keypoint_labeled_visible / keypoints_total * 100
-    percent_occluded = keypoints_labeled_occluded / keypoints_total * 100
-    percent_unlabeled = keypoints_unlabeled / keypoints_total * 100
+                    keypoints_labeled_visible += 1
+                else:   
+                    # Negative visibility (-1)
+                    nv += 1
+                    
+    real_keypoints_total = keypoints_total - nv
+    if nv > 0: 
+        print(f"{nv} instances have been found with visibility value of (-1)")
+    
+    percent_visible = keypoints_labeled_visible / real_keypoints_total * 100
+    percent_occluded = keypoints_labeled_occluded / real_keypoints_total * 100
+    percent_unlabeled = keypoints_unlabeled / real_keypoints_total * 100
     return percent_visible, percent_occluded, percent_unlabeled
