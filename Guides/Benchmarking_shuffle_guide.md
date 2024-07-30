@@ -52,7 +52,7 @@ Using the same DLC TensorFlow 'shuffle' to create a new DLC Pytorch 'shuffle'
     As augmentation methods implemented in the TF and PyTorch versions of DLC are not comparable,  this element does not have to be changed.
     ![other_attrb](<GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.41.09.png>)
     8. Click *'Create training dataset'* and move on to *'train network'*. Shuffle should be set to the new shuffle you entered at the previous step (in this case, 4)
-    ![create_from_existing](<GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.47.10.png>)
+    ![create_from_existing](GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.47.10.png =100x20)
     9. If you wish to keep the training attributes identical  file to your initial TF model, this information can likewise be found in the pytorch_config.yaml
     runner:
 	snapshots:	
