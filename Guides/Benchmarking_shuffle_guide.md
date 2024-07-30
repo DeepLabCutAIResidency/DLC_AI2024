@@ -52,7 +52,7 @@ Using the same DLC TensorFlow 'shuffle' to create a new DLC Pytorch 'shuffle'
     As augmentation methods implemented in the TF and PyTorch versions of DLC are not comparable,  this element does not have to be changed.
     ![other_attrb](<GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.41.09.png>)
     8. Click *'Create training dataset'* and move on to *'train network'*. Shuffle should be set to the new shuffle you entered at the previous step (in this case, 4)
-    ![create_from_existing](GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.47.10.png =100x20)
+    ![create_from_existing](<GUI_benchmarking_TF_PT_guide.rtfd/Screenshot 2024-07-29 at 17.47.10.png>)
     9. If you wish to keep the training attributes identical  file to your initial TF model, this information can likewise be found in the pytorch_config.yaml
     runner:
 	snapshots:	
@@ -64,5 +64,25 @@ Using the same DLC TensorFlow 'shuffle' to create a new DLC Pytorch 'shuffle'
 
 - In Code 
 
-    > *deeplabcut.create_training_dataset_from_existing_split(config, from_shuffle, from_trainsetindex, shuffles, net_type)*
+    With the *deeplabcut* module in Python, use the *create_training_dataset_from_existing_split()* method to create new shuffles from existing ones (e.g. TensorFlow shuffles)
 
+    Similarly, here we create a new shuffle '4' from the existing shuffle '3'.
+
+    ```python
+    import deeplabcut
+
+    config = "path/to/project/config.yaml"
+
+    training_dataset = deeplabcut.create_training_dataset_from_existing_split(config=config, from_shuffle=3, from_trainsetindex=0, shuffles=[4], net_type="resnet_50")
+    ```
+    We can then move to training our new PyTorch model with the same data split as the TensorFlow model.
+    ```python
+    deeplabcut.train_network(config, shuffle=4, engine=Engine.PYTORCH, batch_size=8)
+    ```
+
+    Once, trained we can evaluate our model using
+    
+    ```python
+    deeplabcut.evaluate_network(config, Shuffles=[4], snapshotindex="all")
+    ```
+    Now, we are able to compare performances with peace of mind!
