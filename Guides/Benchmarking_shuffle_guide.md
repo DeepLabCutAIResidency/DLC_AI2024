@@ -1,22 +1,12 @@
 # OUTLINE
-- Why?
--   DLC 3.0 comes when we already have models
--   we need to be able to benchmark our own models for our data to be comparable, at least theoretically.
--   why convert from TF to pytorch?
-- how?
--   
+## Reasoning for benchmarking models created across DLC 3.0 and earlier versions
 
-- How to - GUI
+DLC 3.0 runs on PyTorch as the engine rather than tensor flow (TF). It is of importance for replicability of data analysis to benchmark existing models created using DLC versions prior to 3.0 against new models created in DLC 3.0 and later versions.
 
-- How to - code
-
-# Why ?
-(relevant use cases, why going from tf to pytorch ???)
-# How to ?
-(in case one has already trained a TensorFlow model and wants to do compare it to a Pytorch one)
+The main element of importance for comparability when benchmarking different models is to keep the same test-train data split. If our models use differing train and test data sets, the models are not trained on the same data, and thus the reliability of model benchmarking is compromised. Creating a model using the same data split can be carried out both in GUI and command line, which this guide serves to outline the steps for.
 
 ## Important files & folders
-~~(specify complete paths, and add tree diagrams)~~
+
 ```
 dlc-project
 |
@@ -32,7 +22,6 @@ dlc-project
 
 ## Benchmarking a TF model against a PyTorch model
 ### Creating a shuffle
-(Highlight why it is important to use the same shuffle to compare performances) 
 
 Using the same DLC TensorFlow 'shuffle' to create a new DLC Pytorch 'shuffle'
 - In GUI
