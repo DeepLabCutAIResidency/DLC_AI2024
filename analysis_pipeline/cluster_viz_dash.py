@@ -41,7 +41,7 @@ def update_image(hoverData):
 
 
 fig = px.scatter(
-    data, x="0", y="1", color="label", hover_data=["image_path", "src_dataset"]
+    data, x="0", y="1", color="label", hover_data=["src_dataset"]
 )
 app.layout.children[0].figure = fig
 
