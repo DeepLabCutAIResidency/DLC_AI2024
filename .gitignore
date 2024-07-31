@@ -1,7 +1,14 @@
 *__pycache__/
+
+# data
 tiny_all_bird
 Bird_datasets_merged
-Task2_segmentation.ipynb
-.DS_Store
+
 Task4_multiple_bbox_per_image.py
+Task2_segmentation.ipynb
+
+# Mac
+.DS_Store
+
 calcs.py
+
