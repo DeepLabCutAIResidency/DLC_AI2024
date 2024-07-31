@@ -8,6 +8,11 @@ python cluster_viz_dash.py
 ```
 
 Another way to look at the image similarities, is by clustering them based on their visual aspect using CNNs then a clustering algorithm.
-The PixPlot framework does this using Inception CNN, and uses UMAP algorithm for dimensionality reduction, then, a KMeans algorithm to cluster similar images together
+The PixPlot framework does this using Inception CNN, and uses UMAP algorithm for dimensionality reduction, then, a KMeans algorithm to cluster similar images together.
+
+The image here reflects 4 clusters constructed from 600 images coming from 3 different bird datasets: 
+- cowbird
+- CUB-200-2011
+- tiny_nabirds
 
 ![pixplot](assets/pixplot.png)
