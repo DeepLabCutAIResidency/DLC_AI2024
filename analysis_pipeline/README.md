@@ -6,3 +6,8 @@ To run the Dash app, start by replacing the data files paths in the [cluster_viz
 ```bash
 python cluster_viz_dash.py
 ```
+
+Another way to look at the image similarities, is by clustering them based on their visual aspect using CNNs then a clustering algorithm.
+The PixPlot framework does this using Inception CNN, and uses UMAP algorithm for dimensionality reduction, then, a KMeans algorithm to cluster similar images together
+
+![pixplot](assets/pixplot.png)
