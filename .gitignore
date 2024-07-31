@@ -4,6 +4,9 @@
 tiny_all_bird
 Bird_datasets_merged
 
+# outputs & logs
+output/
+
 Task4_multiple_bbox_per_image.py
 Task2_segmentation.ipynb
 
