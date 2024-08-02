@@ -12,13 +12,13 @@ from src.visualisation import *
 
 
 data = pd.read_csv(
-    "/home/dikra/MyHub/Code/DLC24_Hub/DLC_AI2024/analysis_pipeline/predicted_clusters.csv",
+    "/home/dikra/MyHub/Code/DLC24_Hub/DLC_AI2024/analysis_pipeline/tsne_predicted_clusters.csv",
     index_col=False,
 )
 
 app = dash.Dash(
     __name__,
-    assets_folder="/home/dikra/media/dikra/PhD/DATA/DLC24_Data/tiny_all_bird_merged_coco/images",
+    assets_folder="/media/dikra/PhD/DATA/DLC24_Data/tiny_all_bird_merged_coco/images",
 )
 
 app.layout = html.Div(
