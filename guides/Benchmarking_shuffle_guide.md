@@ -78,12 +78,22 @@ Similarly, here we create a new shuffle '4' from the existing shuffle '3'.
 
 ```python
 import deeplabcut
+from deeplabcut.core.engine import Engine
 
 config = "path/to/project/config.yaml"
 
-training_dataset = deeplabcut.create_training_dataset_from_existing_split(config=config, from_shuffle=3, from_trainsetindex=0, shuffles=[4], net_type="resnet_50")
+training_dataset = deeplabcut.create_training_dataset_from_existing_split(
+   config=config,
+   from_shuffle=3,
+   from_trainsetindex=0,
+   shuffles=[4],
+   net_type="resnet_50",
+)
 ```
-We can then move to training our new PyTorch model with the same data split as the TensorFlow model.
+
+We can then move to training our new PyTorch model with the same data split as the
+TensorFlow model.
+
 ```python
 deeplabcut.train_network(config, shuffle=4, engine=Engine.PYTORCH, batch_size=8)
 ```
@@ -105,4 +115,4 @@ In practice, let's say we have TensorFlow shuffles 0, 1, 2, we can create new Py
 shuffles from them by naming them: 1000, 1001, 1002. This allows us to quickly recognise
 that the shuffles belonging to the 100x range are PyTorch shuffles and that shuffle
 1001, for example, has the same data split at the TensorFlow shuffle 1. This way, the
-comparison can be more straighforward and guaranteed to be correct!
+comparison can be more straightforward and guaranteed to be correct!
