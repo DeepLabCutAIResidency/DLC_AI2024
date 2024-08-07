@@ -24,7 +24,9 @@ line, which this guide serves to outline the steps for.
 dlc-project
 |
 |___dlc-models-pytorch
-|   |__ pytorch_config.yaml
+|   |__ iterationX
+|       |__ shuffleX
+|           |__ pytorch_config.yaml
 |  
 |___training-datasets
 |   |__ metadata.yaml
