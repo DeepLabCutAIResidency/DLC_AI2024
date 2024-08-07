@@ -55,7 +55,7 @@ hold any meaning, but this "split" value indicates which shuffles have the same 
 ![view_existing_sh](<assets/Screenshot 2024-07-29 at 17.10.29.png>)
 5. Choose the index of the training shuffle you want to replicate. Let's assume we want
 to replicate the train-test split from OpenfieldOct30-trainset95shuffle3, in which
-split: 3 in this case, we insert in the *'From shuffle'* menu
+`split: 3`. In this case, we insert in the *'From shuffle'* menu
 ![choose_existing_index](<assets/Screenshot 2024-07-29 at 17.12.17.png>)
 6. In order to create this new dataset, set the shuffle option to an un-used shuffle
 (here 4)
@@ -70,8 +70,8 @@ pytorch_config.yaml. Here all parameters of the original model can be found.
 
 #### In Code 
 
-With the *deeplabcut* module in Python, use the
-*create_training_dataset_from_existing_split()* method to create new shuffles from
+With the `deeplabcut` module in Python, use the
+`create_training_dataset_from_existing_split()` method to create new shuffles from
 existing ones (e.g. TensorFlow shuffles).
 
 Similarly, here we create a new shuffle '4' from the existing shuffle '3'.
