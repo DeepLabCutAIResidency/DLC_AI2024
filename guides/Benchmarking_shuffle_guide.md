@@ -6,7 +6,15 @@ DLC 3.0 runs on PyTorch as the engine rather than TensorFlow. It is of importanc
 replicability of data analysis to benchmark existing models created using DLC versions
 prior to 3.0 against new models created in DLC 3.0 and later versions.
 
-When comparing different models, using the same train-test data split is essential to ensure fair comparisons. If we train models on different datasets, their performance metrics cannot be accurately compared. Therefore, using the same dataset is crucial when comparing the performance of models with different architectures or sets of hyperparameters. For instance, comparing the RMSE of one model on an "easy" test image with the RMSE of another model on a "hard" test image does not indicate which model is superior, as the difference could be due to the architecture's performance or the quality of the training images. Thus, we need to compare the models based on metrics computed on the same test images and train them on an identical fixed training set to "decouple" the dataset from the model architecture.
+When comparing different models, using the same train-test data split is essential 
+to ensure fair comparisons. If we train models on different datasets, their performance 
+metrics cannot be accurately compared. Therefore, using the same dataset is crucial 
+when comparing the performance of models with different architectures or sets of hyperparameters. 
+For instance, comparing the RMSE of one model on an "easy" test image with the RMSE of another 
+model on a "hard" test image does not indicate which model is superior, as the difference could 
+be due to the architecture's performance or the quality of the training images. Thus, we need to compare 
+the models based on metrics computed on the same test images and train them on an identical 
+fixed training set to "decouple" the dataset from the model architecture.
 
 Creating a model using the same data split can be carried out using a GUI or the command line, and this guide outlines the steps for both.
 
