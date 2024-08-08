@@ -18,8 +18,8 @@ of the training images. Thus, we need to compare the models based on metrics
 computed on the same test images and train them on an identical fixed training 
 set to "decouple" the dataset from the model architecture.
 
-Creating a model using the same data split can be carried out using a GUI or the 
-command line, and this guide outlines the steps for both.
+Creating a model using the same data split can be carried out using a GUI or 
+using code, and this guide outlines the steps for both.
 
 ## Important files & folders
 
