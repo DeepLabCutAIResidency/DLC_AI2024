@@ -1,19 +1,21 @@
-# OUTLINE
+# DLC Benchmarking - User Guide
 
-## Reasoning for benchmarking models created across DLC 3.0 and earlier versions
+## Reasoning for benchmarking models in DLC (across DLC versions and architectures)
 
 DLC 3.0 runs on PyTorch as the engine rather than TensorFlow. It is of importance for
 replicability of data analysis to benchmark existing models created using DLC versions
 prior to 3.0 against new models created in DLC 3.0 and later versions.
 
-When benchmarking different models, maintaining the same test-train data split is 
-crucial for ensuring comparability. If the models use differing train and test datasets,
-their performance metrics cannot be accurately compared because they are not trained on
-the same data. This is especially important when comparing the performance of different
-models, such as a TensorFlow model and a PyTorch model, or two models with different
-architectures. Using the same training set is necessary to ensure fair comparisons, as
-different training sets may yield different results and make it difficult to accurately
-compare the models' performance.
+When comparing different models, it's important to use the same train-test data split 
+to ensure fair comparisons. If the models are trained on different datasets, 
+their performance metrics can't be accurately compared. This is crucial when comparing 
+the performance of models with different architectures or different sets of hyperparameters. 
+For example, if we compare the RMSE of a model on an "easy" test image with the RMSE 
+of another model on a "hard" test image, it doesn't determine whether a model is better 
+than the other because the architecture performs better or because the training images 
+were "better" to learn from. Thus, we not only need to compare the models based on metrics
+computed on the same test images, but also train them on an identical fixed training set
+in order to "decouple" the dataset from the model architecture
 
 Creating a model using the same data split can be carried out both in GUI and command
 line, which this guide serves to outline the steps for.
@@ -43,7 +45,8 @@ Creating a new shuffle with the same train/test split as an existing one:
 1. Front page > Load project > Open project folder > choose *config.yaml*
 2. Select *'Create training dataset'* tab
 3. Tick *Use an existing data split* option    
-![create_from_existing](<assets/Screenshot 2024-07-29 at 17.09.15.png>)
+
+    ![create_from_existing](<assets/Screenshot 2024-07-29 at 17.09.15.png>)
 4. Click 'View existing shuffles':
     - This is used to view the indices of shuffles that have been created for a project,
 in order to determine which index is available to assign to a new shuffle.
@@ -54,17 +57,21 @@ in order to determine which index is available to assign to a new shuffle.
 hold any meaning, but this "split" value indicates which shuffles have the same split 
 (as their results can then be compared)
         - engine: Whether it's a PyTorch or TensorFlow shuffle
-![view_existing_sh](<assets/Screenshot 2024-07-29 at 17.10.29.png>)
+
+            ![view_existing_sh](<assets/Screenshot 2024-07-29 at 17.10.29.png>)
 5. Choose the index of the training shuffle you want to replicate. Let's assume we want
 to replicate the train-test split from OpenfieldOct30-trainset95shuffle3, in which
 `split: 3`. In this case, we insert in the *'From shuffle'* menu
-![choose_existing_index](<assets/Screenshot 2024-07-29 at 17.12.17.png>)
+    
+    ![choose_existing_index](<assets/Screenshot 2024-07-29 at 17.12.17.png>)
 6. In order to create this new dataset, set the shuffle option to an un-used shuffle
 (here 4)
-![choose_new_index](<assets/Screenshot 2024-07-29 at 17.36.44.png>)
+    
+    ![choose_new_index](<assets/Screenshot 2024-07-29 at 17.36.44.png>)
 7. Click *'Create training dataset'* and move on to *'train network'*. Shuffle should be 
 set to the new shuffle you entered at the previous step (in this case, 4)
-![create_from_existing](<assets/Screenshot 2024-07-29 at 17.47.10.png>)
+    
+    ![create_from_existing](<assets/Screenshot 2024-07-29 at 17.47.10.png>)
 8. If you wish to keep the training attributes identical to your initial TensorFlow
 model, specifications of the original model can be found in the model folder
 dlc-models-pytorch > iteration folder (here 0) > shuffle (in this case 3) > train > 
