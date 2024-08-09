@@ -6,6 +6,7 @@ Licensed under GNU Lesser General Public License v3.0
 """
 
 import glob
+import ruamel.yaml
 import os
 import typing
 import warnings
@@ -34,6 +35,7 @@ from typing import Optional, Tuple, List
 #     get_output_tensors,
 #     extract_graph,
 # )
+
 from dlclive.pose import extract_cnn_output, argmax_pose_predict, multi_pose_predict
 from dlclive.display import Display
 from dlclive import utils
@@ -516,7 +518,10 @@ class DLCLive(object):
             self.pose = self.processor.process(self.pose, **kwargs)'''
             
         # Mock pose
-        # pose = np.ndarray(())
+        num_individuals = 1
+        num_kpts = 3
+        
+        self.pose = np.ndarray((num_individuals, num_kpts, 3))
 
         return self.pose
 
