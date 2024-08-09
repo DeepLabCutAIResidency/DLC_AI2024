@@ -145,12 +145,12 @@ class DLCLive(object):
 
         # checks
 
-        if self.model_type == "tflite" and self.dynamic[0]:
-            self.dynamic = (False, *self.dynamic[1:])
-            warnings.warn(
-                "Dynamic cropping is not supported for tensorflow lite inference. Dynamic cropping will not be used...",
-                DLCLiveWarning,
-            )
+        # if self.model_type == "tflite" and self.dynamic[0]:
+        #     self.dynamic = (False, *self.dynamic[1:])
+        #     warnings.warn(
+        #         "Dynamic cropping is not supported for tensorflow lite inference. Dynamic cropping will not be used...",
+        #         DLCLiveWarning,
+        #     )
 
         self.read_config()
 
@@ -397,37 +397,37 @@ class DLCLive(object):
 
         frame = self.process_frame(frame)
 
-        if self.model_type in ["base", "tensorrt"]:
+        # if self.model_type in ["base", "tensorrt"]:
 
-            pose_output = self.sess.run(
-                self.outputs, feed_dict={self.inputs: np.expand_dims(frame, axis=0)}
-            )
+        #     pose_output = self.sess.run(
+        #         self.outputs, feed_dict={self.inputs: np.expand_dims(frame, axis=0)}
+        #     )
 
-        elif self.model_type == "tflite":
+        # elif self.model_type == "tflite":
 
-            self.tflite_interpreter.set_tensor(
-                self.inputs[0]["index"],
-                np.expand_dims(frame, axis=0).astype(np.float32),
-            )
-            self.tflite_interpreter.invoke()
+        #     self.tflite_interpreter.set_tensor(
+        #         self.inputs[0]["index"],
+        #         np.expand_dims(frame, axis=0).astype(np.float32),
+        #     )
+        #     self.tflite_interpreter.invoke()
 
-            if len(self.outputs) > 1:
-                pose_output = [
-                    self.tflite_interpreter.get_tensor(self.outputs[0]["index"]),
-                    self.tflite_interpreter.get_tensor(self.outputs[1]["index"]),
-                ]
-            else:
-                pose_output = self.tflite_interpreter.get_tensor(
-                    self.outputs[0]["index"]
-                )
+        #     if len(self.outputs) > 1:
+        #         pose_output = [
+        #             self.tflite_interpreter.get_tensor(self.outputs[0]["index"]),
+        #             self.tflite_interpreter.get_tensor(self.outputs[1]["index"]),
+        #         ]
+        #     else:
+        #         pose_output = self.tflite_interpreter.get_tensor(
+        #             self.outputs[0]["index"]
+        #         )
 
-        else:
+        # else:
 
-            raise DLCLiveError(
-                "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
-                    self.model_type
-                )
-            )
+        #     raise DLCLiveError(
+        #         "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
+        #             self.model_type
+        #         )
+        #     )
 
         # check if using TFGPUinference flag
         # if not, get pose from network output
