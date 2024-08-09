@@ -431,7 +431,9 @@ class DLCLive(object):
 
         # check if using TFGPUinference flag
         # if not, get pose from network output
-
+        
+        # ! to be replaced 
+        '''
         if len(pose_output) > 1:
             scmap, locref = extract_cnn_output(pose_output, self.cfg)
             num_outputs = self.cfg.get("num_outputs", 1)
@@ -466,16 +468,19 @@ class DLCLive(object):
         # process the pose
 
         if self.processor:
-            self.pose = self.processor.process(self.pose, **kwargs)
+            self.pose = self.processor.process(self.pose, **kwargs)'''
+            
+        # Mock pose
+        # pose = np.ndarray(())
 
         return self.pose
 
-    def close(self):
-        """ Close tensorflow session
-        """
+    # def close(self):
+    #     """ Close tensorflow session
+    #     """
 
-        self.sess.close()
-        self.sess = None
-        self.is_initialized = False
-        if self.display is not None:
-            self.display.destroy()
+    #     self.sess.close()
+    #     self.sess = None
+    #     self.is_initialized = False
+    #     if self.display is not None:
+    #         self.display.destroy()
