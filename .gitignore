@@ -16,3 +16,17 @@ Task2_segmentation.ipynb
 
 calcs.py
 
+#Guides
+Guides/.Rapp.history
+
+#DLC live
+DeepLabCut-live/test.ipynb
+Guides/Benchmarking_GaitAnalysisModel_example.md
+
+DeepLabCut-live/test.py
+DeepLabCut-live/exported DLC model for dlc-live
+DeepLabCut-live/Ventral_gait_model
+
+#Misc
+Understandong code for Anna
+
