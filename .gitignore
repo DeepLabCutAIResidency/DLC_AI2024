@@ -15,7 +15,6 @@ Task2_segmentation.ipynb
 
 calcs.py
 
-<<<<<<< HEAD
 #Guides
 Guides/.Rapp.history
 
@@ -30,8 +29,3 @@ DeepLabCut-live/Ventral_gait_model
 #Misc
 Understandong code for Anna
 
-=======
-Understandong code for Anna
-Guides/Benchmarking_GaitAnalysisModel_example.md
-Guides/.Rapp.history
->>>>>>> 06b1a1b (gitignore)
