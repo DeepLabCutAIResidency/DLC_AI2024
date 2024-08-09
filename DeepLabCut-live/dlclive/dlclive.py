@@ -521,7 +521,10 @@ class DLCLive(object):
         num_individuals = 1
         num_kpts = 3
         
-        self.pose = np.ndarray((num_individuals, num_kpts, 3))
+        # ! Multi animal OR single animal: display only supports single for now
+        
+        # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
+        self.pose = np.ones((num_kpts, 3))                      # Single animal
 
         return self.pose
 
