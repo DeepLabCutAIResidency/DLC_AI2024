@@ -13,29 +13,31 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
-import ruamel.yaml
-import tensorflow as tf
+# import tensorflow as tf
+import typing
+from pathlib import Path
+from typing import Optional, Tuple, List
 
-try:
-    TFVER = [int(v) for v in tf.__version__.split(".")]
-    if TFVER[1] < 14:
-        from tensorflow.contrib.tensorrt import trt_convert as trt
-    else:
-        from tensorflow.python.compiler.tensorrt import trt_convert as trt
-except Exception:
-    pass
+# try:
+#     TFVER = [int(v) for v in tf.__version__.split(".")]
+#     if TFVER[1] < 14:
+#         from tensorflow.contrib.tensorrt import trt_convert as trt
+#     else:
+#         from tensorflow.python.compiler.tensorrt import trt_convert as trt
+# except Exception:
+#     pass
 
-from dlclive import utils
+# from dlclive.graph import (
+#     read_graph,
+#     finalize_graph,
+#     get_output_nodes,
+#     get_output_tensors,
+#     extract_graph,
+# )
+from dlclive.pose import extract_cnn_output, argmax_pose_predict, multi_pose_predict
 from dlclive.display import Display
+from dlclive import utils
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.graph import (
-    extract_graph,
-    finalize_graph,
-    get_output_nodes,
-    get_output_tensors,
-    read_graph,
-)
-from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
@@ -173,12 +175,12 @@ class DLCLive(object):
 
         # checks
 
-        if self.model_type == "tflite" and self.dynamic[0]:  # TODO TF_ref
-            self.dynamic = (False, *self.dynamic[1:])
-            warnings.warn(
-                "Dynamic cropping is not supported for tensorflow lite inference. Dynamic cropping will not be used...",
-                DLCLiveWarning,
-            )
+        # if self.model_type == "tflite" and self.dynamic[0]:
+        #     self.dynamic = (False, *self.dynamic[1:])
+        #     warnings.warn(
+        #         "Dynamic cropping is not supported for tensorflow lite inference. Dynamic cropping will not be used...",
+        #         DLCLiveWarning,
+        #     )
 
         self.read_config()
 
@@ -301,11 +303,12 @@ class DLCLive(object):
             )
 
         # process frame
-
-        if frame is None and (self.model_type == "tflite"):
-            raise DLCLiveError(
-                "No image was passed to initialize inference. An image must be passed to the init_inference method"
-            )
+        
+        # ! TODO replace this if statement
+        # if frame is None and (self.model_type == "tflite"):
+        #     raise DLCLiveError(
+        #         "No image was passed to initialize inference. An image must be passed to the init_inference method"
+        #     )
 
         if frame is not None:
             if frame.ndim == 2:
@@ -314,112 +317,97 @@ class DLCLive(object):
 
         # load model
 
-        if self.model_type == "base":
+        # if self.model_type == "base":
 
-            graph_def = read_graph(
-                model_file
-            )  # TODO TF_ref - this load model section seems to be highly dependent on TF - likely have to be changed
-            graph = finalize_graph(graph_def)
-            self.sess, self.inputs, self.outputs = extract_graph(
-                graph, tf_config=self.tf_config
-            )
+        #     graph_def = read_graph(model_file)
+        #     graph = finalize_graph(graph_def)
+        #     self.sess, self.inputs, self.outputs = extract_graph(
+        #         graph, tf_config=self.tf_config
+        #     )
 
-        elif self.model_type == "tflite":
+        # elif self.model_type == "tflite":
 
-            ###
-            # the frame size needed to initialize the tflite model as
-            # tflite does not support saving a model with dynamic input size
-            ###
+        #     ###
+        #     # the frame size needed to initialize the tflite model as
+        #     # tflite does not support saving a model with dynamic input size
+        #     ###
 
-            # get input and output tensor names from graph_def
-            graph_def = read_graph(model_file)
-            graph = finalize_graph(graph_def)
-            output_nodes = get_output_nodes(graph)
-            output_nodes = [on.replace("DLC/", "") for on in output_nodes]
+        #     # get input and output tensor names from graph_def
+        #     graph_def = read_graph(model_file)
+        #     graph = finalize_graph(graph_def)
+        #     output_nodes = get_output_nodes(graph)
+        #     output_nodes = [on.replace("DLC/", "") for on in output_nodes]
+            
+        #     tf_version_2 = tf.__version__[0] == '2'
 
-            tf_version_2 = tf.__version__[0] == "2"
+        #     if tf_version_2:
+        #         converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
+        #             model_file,
+        #             ["Placeholder"],
+        #             output_nodes,
+        #             input_shapes={"Placeholder": [1, processed_frame.shape[0], processed_frame.shape[1], 3]},
+        #         )
+        #     else:
+        #         converter = tf.lite.TFLiteConverter.from_frozen_graph(
+        #             model_file,
+        #             ["Placeholder"],
+        #             output_nodes,
+        #             input_shapes={"Placeholder": [1, processed_frame.shape[0], processed_frame.shape[1], 3]},
+        #         )
+                
+        #     try:
+        #         tflite_model = converter.convert()
+        #     except Exception:
+        #         raise DLCLiveError(
+        #             (
+        #                 "This model cannot be converted to tensorflow lite format. "
+        #                 "To use tensorflow lite for live inference, "
+        #                 "make sure to set TFGPUinference=False "
+        #                 "when exporting the model from DeepLabCut"
+        #             )
+        #         )
 
-            if tf_version_2:
-                converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
-                    model_file,
-                    ["Placeholder"],
-                    output_nodes,
-                    input_shapes={
-                        "Placeholder": [
-                            1,
-                            processed_frame.shape[0],
-                            processed_frame.shape[1],
-                            3,
-                        ]
-                    },
-                )
-            else:
-                converter = tf.lite.TFLiteConverter.from_frozen_graph(
-                    model_file,
-                    ["Placeholder"],
-                    output_nodes,
-                    input_shapes={
-                        "Placeholder": [
-                            1,
-                            processed_frame.shape[0],
-                            processed_frame.shape[1],
-                            3,
-                        ]
-                    },
-                )
+        #     self.tflite_interpreter = tf.lite.Interpreter(model_content=tflite_model)
+        #     self.tflite_interpreter.allocate_tensors()
+        #     self.inputs = self.tflite_interpreter.get_input_details()
+        #     self.outputs = self.tflite_interpreter.get_output_details()
 
-            try:
-                tflite_model = converter.convert()
-            except Exception:
-                raise DLCLiveError(
-                    (
-                        "This model cannot be converted to tensorflow lite format. "
-                        "To use tensorflow lite for live inference, "
-                        "make sure to set TFGPUinference=False "
-                        "when exporting the model from DeepLabCut"
-                    )
-                )
+        # elif self.model_type == "tensorrt":
 
-            self.tflite_interpreter = tf.lite.Interpreter(model_content=tflite_model)
-            self.tflite_interpreter.allocate_tensors()
-            self.inputs = self.tflite_interpreter.get_input_details()
-            self.outputs = self.tflite_interpreter.get_output_details()
+        #     graph_def = read_graph(model_file)
+        #     graph = finalize_graph(graph_def)
+        #     output_tensors = get_output_tensors(graph)
+        #     output_tensors = [ot.replace("DLC/", "") for ot in output_tensors]
 
-        elif self.model_type == "tensorrt":
+        #     if (TFVER[0] > 1) | (TFVER[0] == 1 & TFVER[1] >= 14):
+        #         converter = trt.TrtGraphConverter(
+        #             input_graph_def=graph_def,
+        #             nodes_blacklist=output_tensors,
+        #             is_dynamic_op=True,
+        #         )
+        #         graph_def = converter.convert()
+        #     else:
+        #         graph_def = trt.create_inference_graph(
+        #             input_graph_def=graph_def,
+        #             outputs=output_tensors,
+        #             max_batch_size=1,
+        #             precision_mode=self.precision,
+        #             is_dynamic_op=True,
+        #         )
 
-            graph_def = read_graph(model_file)
-            graph = finalize_graph(graph_def)
-            output_tensors = get_output_tensors(graph)
-            output_tensors = [ot.replace("DLC/", "") for ot in output_tensors]
+        #     graph = finalize_graph(graph_def)
+        #     self.sess, self.inputs, self.outputs = extract_graph(
+        #         graph, tf_config=self.tf_config
+        #     )
 
-            if (TFVER[0] > 1) | (TFVER[0] == 1 & TFVER[1] >= 14):
-                converter = trt.TrtGraphConverter(
-                    input_graph_def=graph_def,
-                    nodes_blacklist=output_tensors,
-                    is_dynamic_op=True,
-                )
-                graph_def = converter.convert()
-            else:
-                graph_def = trt.create_inference_graph(
-                    input_graph_def=graph_def,
-                    outputs=output_tensors,
-                    max_batch_size=1,
-                    precision_mode=self.precision,
-                    is_dynamic_op=True,
-                )
+        # else:
 
-            graph = finalize_graph(graph_def)
-            self.sess, self.inputs, self.outputs = extract_graph(
-                graph, tf_config=self.tf_config
-            )
+        #     raise DLCLiveError(
+        #         "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
+        #             self.model_type
+        #         )
+        #     )
 
-        else:
-
-            raise DLCLiveError(
-                "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
-                    self.model_type
-                )
-            )
 
         # get pose of first frame (first inference is often very slow)
 
@@ -452,44 +440,43 @@ class DLCLive(object):
 
         frame = self.process_frame(frame)
 
-        if self.model_type in [
-            "base",
-            "tensorrt",
-        ]:  # TODO: from here to 480 (raise DLCLiveError()) we think it is doing inference
+        # if self.model_type in ["base", "tensorrt"]:
 
-            pose_output = self.sess.run(
-                self.outputs, feed_dict={self.inputs: np.expand_dims(frame, axis=0)}
-            )
+        #     pose_output = self.sess.run(
+        #         self.outputs, feed_dict={self.inputs: np.expand_dims(frame, axis=0)}
+        #     )
 
-        elif self.model_type == "tflite":
+        # elif self.model_type == "tflite":
 
-            self.tflite_interpreter.set_tensor(
-                self.inputs[0]["index"],
-                np.expand_dims(frame, axis=0).astype(np.float32),
-            )
-            self.tflite_interpreter.invoke()
+        #     self.tflite_interpreter.set_tensor(
+        #         self.inputs[0]["index"],
+        #         np.expand_dims(frame, axis=0).astype(np.float32),
+        #     )
+        #     self.tflite_interpreter.invoke()
 
-            if len(self.outputs) > 1:
-                pose_output = [
-                    self.tflite_interpreter.get_tensor(self.outputs[0]["index"]),
-                    self.tflite_interpreter.get_tensor(self.outputs[1]["index"]),
-                ]
-            else:
-                pose_output = self.tflite_interpreter.get_tensor(
-                    self.outputs[0]["index"]
-                )
+        #     if len(self.outputs) > 1:
+        #         pose_output = [
+        #             self.tflite_interpreter.get_tensor(self.outputs[0]["index"]),
+        #             self.tflite_interpreter.get_tensor(self.outputs[1]["index"]),
+        #         ]
+        #     else:
+        #         pose_output = self.tflite_interpreter.get_tensor(
+        #             self.outputs[0]["index"]
+        #         )
 
-        else:
+        # else:
 
-            raise DLCLiveError(
-                "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
-                    self.model_type
-                )
-            )
+        #     raise DLCLiveError(
+        #         "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
+        #             self.model_type
+        #         )
+        #     )
 
         # check if using TFGPUinference flag
         # if not, get pose from network output
-
+        
+        # ! to be replaced 
+        '''
         if len(pose_output) > 1:
             scmap, locref = extract_cnn_output(
                 pose_output, self.cfg
@@ -526,15 +513,19 @@ class DLCLive(object):
         # process the pose
 
         if self.processor:
-            self.pose = self.processor.process(self.pose, **kwargs)
+            self.pose = self.processor.process(self.pose, **kwargs)'''
+            
+        # Mock pose
+        # pose = np.ndarray(())
 
         return self.pose
 
-    def close(self):  # seems to be deletable
-        """Close tensorflow session"""
+    # def close(self):
+    #     """ Close tensorflow session
+    #     """
 
-        self.sess.close()
-        self.sess = None
-        self.is_initialized = False
-        if self.display is not None:
-            self.display.destroy()
+    #     self.sess.close()
+    #     self.sess = None
+    #     self.is_initialized = False
+    #     if self.display is not None:
+    #         self.display.destroy()
