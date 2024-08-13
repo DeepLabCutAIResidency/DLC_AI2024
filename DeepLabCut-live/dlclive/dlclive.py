@@ -18,6 +18,7 @@ import numpy as np
 import typing
 from pathlib import Path
 from typing import Optional, Tuple, List
+import torch
 
 # try:
 #     TFVER = [int(v) for v in tf.__version__.split(".")]
@@ -36,6 +37,8 @@ from typing import Optional, Tuple, List
 #     extract_graph,
 # )
 
+import deeplabcut as dlc
+from deeplabcut.pose_estimation_pytorch.models import PoseModel 
 from dlclive.pose import extract_cnn_output, argmax_pose_predict, multi_pose_predict
 from dlclive.display import Display
 from dlclive import utils
@@ -137,6 +140,8 @@ class DLCLive(object):
         model_type: str = "base",
         precision: str = "FP32",
         tf_config=None,
+        pytorch_cfg=str,
+        snapshot=str,
         cropping: Optional[List[int]] = None,
         dynamic: Tuple[bool, float, float] = (False, 0.5, 10),
         resize: Optional[float] = None,
@@ -152,6 +157,8 @@ class DLCLive(object):
         self.cfg = None  # type: typing.Optional[dict]
         self.model_type = model_type
         self.tf_config = tf_config
+        self.pytorch_cfg = pytorch_cfg
+        self.snapshot = snapshot
         self.precision = precision
         self.cropping = cropping
         self.dynamic = dynamic
@@ -278,6 +285,18 @@ class DLCLive(object):
             frame = utils.img_to_rgb(frame)
 
         return frame
+    
+    
+    def load_model(self):
+        self.pytorch_cfg = self.read_config(self.config_path)
+        weights = torch.load(self.snapshot_path)
+        print("Loaded weights")
+        pose_model = PoseModel.build(self.pytorch_cfg['model'])
+        print("Built pose model")
+        pose_model.load_state_dict(weights["model"])
+        print('Loaded pretrained weights')        
+        return pose_model
+
 
     def init_inference(self, frame=None, **kwargs):
         """
@@ -522,10 +541,21 @@ class DLCLive(object):
         num_kpts = 3
         
         # ! Multi animal OR single animal: display only supports single for now
-        
-        # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
-        self.pose = np.ones((num_kpts, 3))                      # Single animal
 
+        # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
+        # self.pose = np.ones((num_kpts, 3))                    # Single animal
+
+        mock_frame = np.ones((1, 3, 128, 128))
+        mock_frame = torch.Tensor(mock_frame)
+        
+        # Pytorch pose prediction
+        pose_model = self.load_model()
+        outputs = pose_model(mock_frame)
+        self.pose = pose_model.get_predictions(outputs)
+        
+        # debug
+        print(pose_model)
+        print(self.pose, self.pose.shape)
         return self.pose
 
     # def close(self):
