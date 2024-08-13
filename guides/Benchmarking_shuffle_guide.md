@@ -6,17 +6,17 @@ DLC 3.0 runs on PyTorch as the engine rather than TensorFlow. It is of importanc
 replicability of data analysis to benchmark existing models created using DLC versions
 prior to 3.0 against new models created in DLC 3.0 and later versions.
 
-When comparing different models, using the same train-test data split is 
-essential to ensure fair comparisons. If we train models on different datasets, 
-their performance metrics cannot be accurately compared. Therefore, using 
-the same dataset is crucial when comparing the performance of models with 
-different architectures or sets of hyperparameters. For instance, comparing 
-the RMSE of one model on an "easy" test image with the RMSE of another model 
-on a "hard" test image does not indicate which model is superior, 
-as the difference could be due to the architecture's performance or the quality 
-of the training images. Thus, we need to compare the models based on metrics 
-computed on the same test images and train them on an identical fixed training 
-set to "decouple" the dataset from the model architecture.
+When comparing different models, it's important to use the same train-test data 
+split to ensure fair comparisons. If the models are trained on different datasets, 
+their performance metrics can't be accurately compared. This is crucial when 
+comparing the performance of models with different architectures or different 
+sets of hyperparameters. For example, if we compare the RMSE of a model on an 
+"easy" test image with the RMSE of another model on a "hard" test image, it 
+doesn't determine whether a model is better than the other because the 
+architecture performs better or because the training images were "better" to 
+learn from. Thus, we not only need to compare the models based on metrics 
+computed on the same test images, but also train them on an identical fixed 
+training set in order to "decouple" the dataset from the model architecture.
 
 Creating a model using the same data split can be carried out using a GUI or 
 using code, and this guide outlines the steps for both.
@@ -72,10 +72,15 @@ to replicate the train-test split from OpenfieldOct30-trainset95shuffle3, in whi
 set to the new shuffle entered at the previous step (in this case, 4)
     
     ![create_from_existing](<assets/img5.png>)
-8. If you wish to keep the training attributes identical to your initial TensorFlow
-model, specifications of the original model can be found in the model folder
-dlc-models-pytorch > iteration folder (here 0) > shuffle (in this case 3) > train > 
-pytorch_config.yaml. Here all parameters of the original model can be found.
+8. To view/edit the specifications of the model you created, you can go to `pytoch_config.yaml` file at:
+    ```
+    dlc-project
+    |
+    |___ dlc-models-pytorch
+        |__ iterationX
+            |__ shuffleX
+                |__ pytorch_config.yaml
+    ```
 
 #### In Code 
 
