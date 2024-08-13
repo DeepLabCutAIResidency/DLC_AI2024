@@ -6,19 +6,24 @@ Licensed under GNU Lesser General Public License v3.0
 """
 
 import glob
-import ruamel.yaml
 import os
+
+# import tensorflow as tf
 import typing
 import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import deeplabcut as dlc
 import numpy as np
-# import tensorflow as tf
-import typing
-from pathlib import Path
-from typing import Optional, Tuple, List
+import ruamel.yaml
 import torch
+from deeplabcut.pose_estimation_pytorch.models import PoseModel
+
+from dlclive import utils
+from dlclive.display import Display
+from dlclive.exceptions import DLCLiveError, DLCLiveWarning
+from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
 
 # try:
 #     TFVER = [int(v) for v in tf.__version__.split(".")]
@@ -37,12 +42,6 @@ import torch
 #     extract_graph,
 # )
 
-import deeplabcut as dlc
-from deeplabcut.pose_estimation_pytorch.models import PoseModel 
-from dlclive.pose import extract_cnn_output, argmax_pose_predict, multi_pose_predict
-from dlclive.display import Display
-from dlclive import utils
-from dlclive.exceptions import DLCLiveError, DLCLiveWarning
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
@@ -153,7 +152,7 @@ class DLCLive(object):
         display_cmap: str = "bmy",
     ):
 
-        self.path = model_path 
+        self.path = model_path
         self.cfg = None  # type: typing.Optional[dict]
         self.model_type = model_type
         self.tf_config = tf_config
@@ -212,7 +211,6 @@ class DLCLive(object):
 
         ruamel_file = ruamel.yaml.YAML()
         self.cfg = ruamel_file.load(open(str(cfg_path), "r"))
-            
 
     @property
     def parameterization(
@@ -286,19 +284,19 @@ class DLCLive(object):
             frame = utils.img_to_rgb(frame)
 
         return frame
-    
-    
+
     def load_model(self):
         self.read_config()
-        weights = torch.load(self.snapshot)
+        weights = torch.load(
+            self.snapshot, map_location=torch.device("cpu")
+        )  # added this to run on CPU
         print("Loaded weights")
         print(self.cfg)
-        pose_model = PoseModel.build(self.cfg['model'])
+        pose_model = PoseModel.build(self.cfg["model"])
         print("Built pose model")
         pose_model.load_state_dict(weights["model"])
-        print('Loaded pretrained weights')        
+        print("Loaded pretrained weights")
         return pose_model
-
 
     def init_inference(self, frame=None, **kwargs):
         """
@@ -326,7 +324,7 @@ class DLCLive(object):
             )
 
         # process frame
-        
+
         # ! TODO replace this if statement
         # if frame is None and (self.model_type == "tflite"):
         #     raise DLCLiveError(
@@ -360,7 +358,7 @@ class DLCLive(object):
         #     graph = finalize_graph(graph_def)
         #     output_nodes = get_output_nodes(graph)
         #     output_nodes = [on.replace("DLC/", "") for on in output_nodes]
-            
+
         #     tf_version_2 = tf.__version__[0] == '2'
 
         #     if tf_version_2:
@@ -377,7 +375,7 @@ class DLCLive(object):
         #             output_nodes,
         #             input_shapes={"Placeholder": [1, processed_frame.shape[0], processed_frame.shape[1], 3]},
         #         )
-                
+
         #     try:
         #         tflite_model = converter.convert()
         #     except Exception:
@@ -430,7 +428,6 @@ class DLCLive(object):
         #             self.model_type
         #         )
         #     )
-
 
         # get pose of first frame (first inference is often very slow)
 
@@ -497,9 +494,9 @@ class DLCLive(object):
 
         # check if using TFGPUinference flag
         # if not, get pose from network output
-        
-        # ! to be replaced 
-        '''
+
+        # ! to be replaced
+        """
         if len(pose_output) > 1:
             scmap, locref = extract_cnn_output(
                 pose_output, self.cfg
@@ -536,12 +533,12 @@ class DLCLive(object):
         # process the pose
 
         if self.processor:
-            self.pose = self.processor.process(self.pose, **kwargs)'''
-            
+            self.pose = self.processor.process(self.pose, **kwargs)"""
+
         # Mock pose
         num_individuals = 1
         num_kpts = 3
-        
+
         # ! Multi animal OR single animal: display only supports single for now
 
         # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
@@ -549,15 +546,15 @@ class DLCLive(object):
 
         # mock_frame = np.ones((1, 3, 128, 128))
         frame = torch.Tensor(frame).permute(2, 0, 1)
-        
+
         # Pytorch pose prediction
         pose_model = self.load_model()
         outputs = pose_model(frame)
         self.pose = pose_model.get_predictions(outputs)
-        
+
         # debug
         print(pose_model)
-        print(self.pose, self.pose['bodypart']['poses'].shape())
+        # print(self.pose, self.pose["bodypart"]["poses"].shape())
         return self.pose
 
     # def close(self):
