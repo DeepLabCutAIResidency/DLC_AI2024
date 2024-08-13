@@ -149,7 +149,6 @@ class HeatmapPredictor(BasePredictor):
             >>> poses = predictor.get_pose_prediction(heatmap, locref, scale_factors)
         """
         y, x = self.get_top_values(heatmap)
-        print(y, x)
 
         batch_size, num_joints = x.shape
 
@@ -162,12 +161,14 @@ class HeatmapPredictor(BasePredictor):
 
         print('dz',dz.shape)
         x, y = torch.unsqueeze(x, 1), torch.unsqueeze(y, 1)
-        
+        print(y, x)
         x = x * scale_factors[1] + 0.5 * scale_factors[1] + dz[:, :, :, 0]
         y = y * scale_factors[0] + 0.5 * scale_factors[0] + dz[:, :, :, 1]
         print(y, x)
         pose = torch.empty((batch_size, 1, num_joints, 3))
         pose[:, :, :, 0] = x
         pose[:, :, :, 1] = y
+        # debug
+        print(dz)
         pose[:, :, :, 2] = dz[:, :, :, 2]
         return pose

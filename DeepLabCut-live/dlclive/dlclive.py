@@ -468,7 +468,7 @@ class DLCLive(object):
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
-        frame = self.process_frame(frame)
+        # frame = self.process_frame(frame)
 
         # if self.model_type in ["base", "tensorrt"]:
 
@@ -555,20 +555,21 @@ class DLCLive(object):
         # self.pose = np.ones((num_kpts, 3))                    # Single animal
 
         # mock_frame = np.ones((1, 3, 128, 128))
-        frame = torch.Tensor(frame).permute(2, 0, 1)
         
         pose_model = self.load_model()
         if self.model_type == "pytorch":
+            frame = torch.Tensor(frame).permute(2, 0, 1)
             # Pytorch pose prediction
             outputs = pose_model(frame)
             self.pose = pose_model.get_predictions(outputs)
+            
         elif self.model_type == "onnx":
             model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
             ort_session = ort.InferenceSession(model_path)
-
+            ort_inputs = {ort_session.get_inputs()[0].name: frame}
             outputs = ort_session.run(
                 None,
-                {"input.1": np.random.randn(8, 3, 640, 480).astype(np.float32)},
+                ort_inputs
             )
             outputs_dict = {
                 'heatmap': torch.Tensor(outputs[0]),
