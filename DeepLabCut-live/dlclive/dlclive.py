@@ -7,6 +7,9 @@ Licensed under GNU Lesser General Public License v3.0
 
 import glob
 import os
+import onnx
+import onnxruntime as ort
+
 
 # import tensorflow as tf
 import typing
@@ -19,6 +22,7 @@ import numpy as np
 import ruamel.yaml
 import torch
 from deeplabcut.pose_estimation_pytorch.models import PoseModel
+from dlclive.predictor import HeatmapPredictor
 
 from dlclive import utils
 from dlclive.display import Display
@@ -136,7 +140,7 @@ class DLCLive(object):
     def __init__(
         self,
         model_path: str = None,
-        model_type: str = "base",
+        model_type: str = "pytorch",
         precision: str = "FP32",
         tf_config=None,
         pytorch_cfg=str,
@@ -286,17 +290,23 @@ class DLCLive(object):
         return frame
 
     def load_model(self):
-        self.read_config()
-        weights = torch.load(
-            self.snapshot, map_location=torch.device("cpu")
-        )  # added this to run on CPU
-        print("Loaded weights")
-        print(self.cfg)
-        pose_model = PoseModel.build(self.cfg["model"])
-        print("Built pose model")
-        pose_model.load_state_dict(weights["model"])
-        print("Loaded pretrained weights")
+        if self.model_type == "pytorch":
+            self.read_config()
+            # TODO add device qrgument + replace model type with runtime argument
+            weights = torch.load(
+                self.snapshot, map_location=torch.device("cpu")
+            )  # added this to run on CPU
+            print("Loaded weights")
+            print(self.cfg)
+            pose_model = PoseModel.build(self.cfg["model"])
+            print("Built pose model")
+            pose_model.load_state_dict(weights["model"])
+            print("Loaded pretrained weights")
+        elif self.model_type == "onnx":
+            model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
+            pose_model = onnx.load(model_path)
         return pose_model
+
 
     def init_inference(self, frame=None, **kwargs):
         """
@@ -546,14 +556,26 @@ class DLCLive(object):
 
         # mock_frame = np.ones((1, 3, 128, 128))
         frame = torch.Tensor(frame).permute(2, 0, 1)
-
-        # Pytorch pose prediction
+        
         pose_model = self.load_model()
-        outputs = pose_model(frame)
-        self.pose = pose_model.get_predictions(outputs)
+        if self.model_type == "pytorch":
+            # Pytorch pose prediction
+            outputs = pose_model(frame)
+            self.pose = pose_model.get_predictions(outputs)
+        elif self.model_type == "onnx":
+            model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
+            ort_session = ort.InferenceSession(model_path)
 
-        # debug
-        print(pose_model)
+            outputs = ort_session.run(
+                None,
+                {"input.1": np.random.randn(8, 3, 640, 480).astype(np.float32)},
+            )
+            outputs_dict = {
+                'heatmap': torch.Tensor(outputs[0]),
+                'locref': torch.Tensor(outputs[1])
+            }
+            predictor = HeatmapPredictor()
+            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]), outputs=outputs_dict)
         # print(self.pose, self.pose["bodypart"]["poses"].shape())
         return self.pose
 
