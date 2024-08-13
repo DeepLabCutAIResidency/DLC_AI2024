@@ -136,7 +136,7 @@ class DLCLive(object):
 
     def __init__(
         self,
-        model_path: str,
+        model_path: str = None,
         model_type: str = "base",
         precision: str = "FP32",
         tf_config=None,
@@ -153,7 +153,7 @@ class DLCLive(object):
         display_cmap: str = "bmy",
     ):
 
-        self.path = model_path
+        self.path = model_path 
         self.cfg = None  # type: typing.Optional[dict]
         self.model_type = model_type
         self.tf_config = tf_config
@@ -203,7 +203,7 @@ class DLCLive(object):
         """
 
         cfg_path = (
-            Path(self.path).resolve() / "pose_cfg.yaml"
+            Path(self.pytorch_cfg).resolve() / "pose_cfg.yaml"
         )  # TODO TF_ref - replace by pytorch config - consider importing read_config function from DLC 3 - and the new config may have both detector and 'normal' config - e.g batch size could refer both to detector and key points. should be handled in the read_config from DLC3
         if not cfg_path.exists():
             raise FileNotFoundError(
@@ -288,8 +288,8 @@ class DLCLive(object):
     
     
     def load_model(self):
-        self.pytorch_cfg = self.read_config(self.config_path)
-        weights = torch.load(self.snapshot_path)
+        self.pytorch_cfg = self.read_config()
+        weights = torch.load(self.snapshot)
         print("Loaded weights")
         pose_model = PoseModel.build(self.pytorch_cfg['model'])
         print("Built pose model")
@@ -315,7 +315,7 @@ class DLCLive(object):
 
         # get model file
 
-        model_file = glob.glob(os.path.normpath(self.path + "/*.pb"))[
+        model_file = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.pt"))[
             0
         ]  # TODO TF_ref - maybe .pb format will be changed when using pytorch
         if not os.path.isfile(model_file):
@@ -545,12 +545,12 @@ class DLCLive(object):
         # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
         # self.pose = np.ones((num_kpts, 3))                    # Single animal
 
-        mock_frame = np.ones((1, 3, 128, 128))
-        mock_frame = torch.Tensor(mock_frame)
+        # mock_frame = np.ones((1, 3, 128, 128))
+        # mock_frame = torch.Tensor(mock_frame)
         
         # Pytorch pose prediction
         pose_model = self.load_model()
-        outputs = pose_model(mock_frame)
+        outputs = pose_model(frame)
         self.pose = pose_model.get_predictions(outputs)
         
         # debug
