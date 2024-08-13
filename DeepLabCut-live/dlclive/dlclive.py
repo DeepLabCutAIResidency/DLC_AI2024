@@ -558,7 +558,7 @@ class DLCLive(object):
         
         pose_model = self.load_model()
         if self.model_type == "pytorch":
-            frame = torch.Tensor(frame).permute(2, 0, 1)
+            frame = torch.Tensor(frame)
             # Pytorch pose prediction
             outputs = pose_model(frame)
             self.pose = pose_model.get_predictions(outputs)
