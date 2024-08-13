@@ -203,7 +203,7 @@ class DLCLive(object):
         """
 
         cfg_path = (
-            Path(self.pytorch_cfg).resolve() / "pose_cfg.yaml"
+            Path(self.pytorch_cfg).resolve() / "pytorch_config.yaml"
         )  # TODO TF_ref - replace by pytorch config - consider importing read_config function from DLC 3 - and the new config may have both detector and 'normal' config - e.g batch size could refer both to detector and key points. should be handled in the read_config from DLC3
         if not cfg_path.exists():
             raise FileNotFoundError(
@@ -212,6 +212,7 @@ class DLCLive(object):
 
         ruamel_file = ruamel.yaml.YAML()
         self.cfg = ruamel_file.load(open(str(cfg_path), "r"))
+            
 
     @property
     def parameterization(
@@ -288,10 +289,11 @@ class DLCLive(object):
     
     
     def load_model(self):
-        self.pytorch_cfg = self.read_config()
+        self.read_config()
         weights = torch.load(self.snapshot)
         print("Loaded weights")
-        pose_model = PoseModel.build(self.pytorch_cfg['model'])
+        print(self.cfg)
+        pose_model = PoseModel.build(self.cfg['model'])
         print("Built pose model")
         pose_model.load_state_dict(weights["model"])
         print('Loaded pretrained weights')        
@@ -546,7 +548,7 @@ class DLCLive(object):
         # self.pose = np.ones((num_kpts, 3))                    # Single animal
 
         # mock_frame = np.ones((1, 3, 128, 128))
-        # mock_frame = torch.Tensor(mock_frame)
+        frame = torch.Tensor(frame).permute(2, 0, 1)
         
         # Pytorch pose prediction
         pose_model = self.load_model()
@@ -555,7 +557,7 @@ class DLCLive(object):
         
         # debug
         print(pose_model)
-        print(self.pose, self.pose.shape)
+        print(self.pose, self.pose['bodypart']['poses'].shape())
         return self.pose
 
     # def close(self):
