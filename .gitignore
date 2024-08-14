@@ -1,4 +1,5 @@
 *__pycache__/
+.ipynb_checkpoints
 
 # data
 tiny_all_bird
@@ -29,4 +30,7 @@ DeepLabCut-live/Ventral_gait_model
 
 #Misc
 Understandong code for Anna
+
+# data
+MNIST/
 
