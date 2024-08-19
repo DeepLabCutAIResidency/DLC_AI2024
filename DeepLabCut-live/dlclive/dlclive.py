@@ -297,16 +297,16 @@ class DLCLive(object):
                 self.snapshot, map_location=torch.device("cpu")
             )  # added this to run on CPU
             print("Loaded weights")
-            print(self.cfg)
+            # print(self.cfg)
             pose_model = PoseModel.build(self.cfg["model"])
             print("Built pose model")
             pose_model.load_state_dict(weights["model"])
             print("Loaded pretrained weights")
         elif self.model_type == "onnx":
-            print(os.path.normpath(self.pytorch_cfg + "/*.onnx"))
-            print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
+            # print(os.path.normpath(self.pytorch_cfg + "/*.onnx"))
+            # print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
             model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
-            pose_model = onnx.load(model_path)
+            pose_model = onnx.load(model_path) # ! any use to this?
         return pose_model
 
 
@@ -563,20 +563,24 @@ class DLCLive(object):
             frame = torch.Tensor(frame)
             # Pytorch pose prediction
             outputs = pose_model(frame)
-            # debug
-            print("heads", pose_model.heads)
-            print("strides", pose_model._strides)
-            print(outputs.keys())
+            print("pytorch outputs", outputs["bodypart"]["heatmap"].shape, outputs["bodypart"]["locref"].shape)
+            # print("strides", pose_model._strides)
+            # print(outputs["bodypart"].keys())
             outputs_dict = {
-                'heatmap': torch.Tensor(outputs[0]),
-                'locref': torch.Tensor(outputs[1])
+                'heatmap': torch.Tensor(outputs["bodypart"]["heatmap"]),
+                'locref': torch.Tensor(outputs["bodypart"]["locref"])
             }
-            # self.pose = pose_model.get_predictions(outputs)
-            predictor = HeatmapPredictor()
-            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]/2), outputs=outputs_dict)
+            self.pose = pose_model.get_predictions(outputs)
+            # debug
+            print("predictor", pose_model.heads["bodypart"].predictor.apply_sigmoid)
+            
+            # predictor = HeatmapPredictor()
+            # self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]), outputs=outputs_dict)
+            # # debug
+            # print("predictor", predictor.apply_sigmoid)
             
         elif self.model_type == "onnx":
-            print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
+            # print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
             model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
             ort_session = ort.InferenceSession(model_path)
             frame = frame.detach().numpy()
@@ -585,14 +589,17 @@ class DLCLive(object):
                 None,
                 ort_inputs
             )
+            print("onnx outputs", outputs[0].shape, outputs[1].shape)
             # debug
-            print(outputs[0].shape, outputs[1].shape)
+            # print(outputs[0].shape, outputs[1].shape)
             outputs_dict = {
                 'heatmap': torch.Tensor(outputs[0]),
                 'locref': torch.Tensor(outputs[1])
             }
-            predictor = HeatmapPredictor()
-            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]/2), outputs=outputs_dict)
+            predictor = HeatmapPredictor.build(self.cfg)
+            self.pose = predictor(outputs=outputs_dict)
+            # debug
+            print("predictor", predictor.apply_sigmoid, predictor.stride)
         # print(self.pose, self.pose["bodypart"]["poses"].shape())
         return self.pose
 
