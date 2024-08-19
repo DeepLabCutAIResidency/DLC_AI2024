@@ -303,6 +303,8 @@ class DLCLive(object):
             pose_model.load_state_dict(weights["model"])
             print("Loaded pretrained weights")
         elif self.model_type == "onnx":
+            print(os.path.normpath(self.pytorch_cfg + "/*.onnx"))
+            print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
             model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
             pose_model = onnx.load(model_path)
         return pose_model
@@ -340,11 +342,11 @@ class DLCLive(object):
         #     raise DLCLiveError(
         #         "No image was passed to initialize inference. An image must be passed to the init_inference method"
         #     )
-
+        '''
         if frame is not None:
             if frame.ndim == 2:
                 self.convert2rgb = True
-            processed_frame = self.process_frame(frame)
+            processed_frame = self.process_frame(frame)'''
 
         # load model
 
@@ -561,22 +563,36 @@ class DLCLive(object):
             frame = torch.Tensor(frame)
             # Pytorch pose prediction
             outputs = pose_model(frame)
-            self.pose = pose_model.get_predictions(outputs)
+            # debug
+            print("heads", pose_model.heads)
+            print("strides", pose_model._strides)
+            print(outputs.keys())
+            outputs_dict = {
+                'heatmap': torch.Tensor(outputs[0]),
+                'locref': torch.Tensor(outputs[1])
+            }
+            # self.pose = pose_model.get_predictions(outputs)
+            predictor = HeatmapPredictor()
+            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]/2), outputs=outputs_dict)
             
         elif self.model_type == "onnx":
+            print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
             model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
             ort_session = ort.InferenceSession(model_path)
+            frame = frame.detach().numpy()
             ort_inputs = {ort_session.get_inputs()[0].name: frame}
             outputs = ort_session.run(
                 None,
                 ort_inputs
             )
+            # debug
+            print(outputs[0].shape, outputs[1].shape)
             outputs_dict = {
                 'heatmap': torch.Tensor(outputs[0]),
                 'locref': torch.Tensor(outputs[1])
             }
             predictor = HeatmapPredictor()
-            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]), outputs=outputs_dict)
+            self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]/2), outputs=outputs_dict)
         # print(self.pose, self.pose["bodypart"]["poses"].shape())
         return self.pose
 
