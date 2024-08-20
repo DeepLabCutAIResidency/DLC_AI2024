@@ -70,7 +70,7 @@ class Display(object):
         if pose is not None:
 
             if self.window is None:
-                self.set_display(im_size, pose.shape[0])
+                self.set_display(im_size, pose["poses"].shape[0])
 
             img = Image.fromarray(frame)
             draw = ImageDraw.Draw(img)

@@ -139,11 +139,12 @@ class DLCLive(object):
 
     def __init__(
         self,
-        model_path: str = None,
+        path: str,
         model_type: str = "pytorch",
         precision: str = "FP32",
-        tf_config=None,
-        pytorch_cfg=str,
+        device: str = "cpu",
+        # tf_config=None,
+        # pytorch_cfg=str,
         snapshot=str,
         cropping: Optional[List[int]] = None,
         dynamic: Tuple[bool, float, float] = (False, 0.5, 10),
@@ -156,11 +157,9 @@ class DLCLive(object):
         display_cmap: str = "bmy",
     ):
 
-        self.path = model_path
-        self.cfg = None  # type: typing.Optional[dict]
+        self.path = path
         self.model_type = model_type
-        self.tf_config = tf_config
-        self.pytorch_cfg = pytorch_cfg
+        self.device = device
         self.snapshot = snapshot
         self.precision = precision
         self.cropping = cropping
@@ -178,12 +177,15 @@ class DLCLive(object):
         else:
             self.display = None
 
+        self.cfg = None
+        self.cfg_path = None
         self.sess = None
-        self.inputs = None
-        self.outputs = None
-        self.tflite_interpreter = None
+        self.pose_model = None
+        # self.inputs = None
+        # self.outputs = None
+        # self.tflite_interpreter = None
         self.pose = None
-        self.is_initialized = False
+        # self.is_initialized = False
 
         # checks
 
@@ -206,8 +208,8 @@ class DLCLive(object):
         """
 
         cfg_path = (
-            Path(self.pytorch_cfg).resolve() / "pytorch_config.yaml"
-        )  # TODO TF_ref - replace by pytorch config - consider importing read_config function from DLC 3 - and the new config may have both detector and 'normal' config - e.g batch size could refer both to detector and key points. should be handled in the read_config from DLC3
+            Path(self.path).resolve() / "pytorch_config.yaml"
+        )
         if not cfg_path.exists():
             raise FileNotFoundError(
                 f"The pose configuration file for the exported model at {str(cfg_path)} was not found. Please check the path to the exported model directory"
@@ -244,16 +246,15 @@ class DLCLive(object):
             processed frame: convert type, crop, convert color
         """
 
-        if frame.dtype != np.uint8:
-
-            frame = utils.convert_to_ubyte(frame)
-
+        # if frame.dtype != np.uint8:
+        #     frame = utils.convert_to_ubyte(frame)
+            
         if self.cropping:  # if cropping is specified, it will be applied
-
+            print(frame.shape)
             frame = frame[  # A: this produces a cropped image based on incoming coordinates x1,x2,y1,y2
                 self.cropping[2] : self.cropping[3], self.cropping[0] : self.cropping[1]
             ]
-
+            print(frame.shape)
         if self.dynamic[
             0
         ]:  # to go through this if statement, the boolean would have to be = True. for it to react to false you'd have to write if not self.dynamic[0]
@@ -291,23 +292,33 @@ class DLCLive(object):
 
     def load_model(self):
         if self.model_type == "pytorch":
-            self.read_config()
-            # TODO add device qrgument + replace model type with runtime argument
+            # Requires DLC 3.0 to be imported
+            model_path = os.path.join(self.path, self.snapshot)
+            if not os.path.isfile(model_path):
+                raise FileNotFoundError(
+                    "The model file {} does not exist.".format(model_path)
+                )
             weights = torch.load(
-                self.snapshot, map_location=torch.device("cpu")
-            )  # added this to run on CPU
-            print("Loaded weights")
-            # print(self.cfg)
-            pose_model = PoseModel.build(self.cfg["model"])
-            print("Built pose model")
-            pose_model.load_state_dict(weights["model"])
-            print("Loaded pretrained weights")
+                model_path, map_location=torch.device(self.device)
+            )
+            self.pose_model = PoseModel.build(self.cfg["model"])
+            self.pose_model.load_state_dict(weights["model"])
+            
         elif self.model_type == "onnx":
-            # print(os.path.normpath(self.pytorch_cfg + "/*.onnx"))
-            # print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
-            model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
-            pose_model = onnx.load(model_path) # ! any use to this?
-        return pose_model
+            model_path = glob.glob(os.path.normpath(self.path + "/*.onnx"))[0]
+            self.sess = ort.InferenceSession(model_path)
+            
+            if not os.path.isfile(model_path):
+                raise FileNotFoundError(
+                    "The model file {} does not exist.".format(model_path)
+                )
+                
+        else:
+            raise DLCLiveError(
+                "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
+                    self.model_type
+                )
+            )
 
 
     def init_inference(self, frame=None, **kwargs):
@@ -325,122 +336,14 @@ class DLCLive(object):
             the pose estimated by DeepLabCut for the input image
         """
 
-        # get model file
-
-        model_file = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.pt"))[
-            0
-        ]  # TODO TF_ref - maybe .pb format will be changed when using pytorch
-        if not os.path.isfile(model_file):
-            raise FileNotFoundError(
-                "The model file {} does not exist.".format(model_file)
-            )
-
-        # process frame
-
-        # ! TODO replace this if statement
-        # if frame is None and (self.model_type == "tflite"):
-        #     raise DLCLiveError(
-        #         "No image was passed to initialize inference. An image must be passed to the init_inference method"
-        #     )
-        '''
-        if frame is not None:
-            if frame.ndim == 2:
-                self.convert2rgb = True
-            processed_frame = self.process_frame(frame)'''
+        # if frame is not None:
+        #     if frame.ndim == 2:
+        #         self.convert2rgb = True
+        #     processed_frame = self.process_frame(frame)
 
         # load model
-
-        # if self.model_type == "base":
-
-        #     graph_def = read_graph(model_file)
-        #     graph = finalize_graph(graph_def)
-        #     self.sess, self.inputs, self.outputs = extract_graph(
-        #         graph, tf_config=self.tf_config
-        #     )
-
-        # elif self.model_type == "tflite":
-
-        #     ###
-        #     # the frame size needed to initialize the tflite model as
-        #     # tflite does not support saving a model with dynamic input size
-        #     ###
-
-        #     # get input and output tensor names from graph_def
-        #     graph_def = read_graph(model_file)
-        #     graph = finalize_graph(graph_def)
-        #     output_nodes = get_output_nodes(graph)
-        #     output_nodes = [on.replace("DLC/", "") for on in output_nodes]
-
-        #     tf_version_2 = tf.__version__[0] == '2'
-
-        #     if tf_version_2:
-        #         converter = tf.compat.v1.lite.TFLiteConverter.from_frozen_graph(
-        #             model_file,
-        #             ["Placeholder"],
-        #             output_nodes,
-        #             input_shapes={"Placeholder": [1, processed_frame.shape[0], processed_frame.shape[1], 3]},
-        #         )
-        #     else:
-        #         converter = tf.lite.TFLiteConverter.from_frozen_graph(
-        #             model_file,
-        #             ["Placeholder"],
-        #             output_nodes,
-        #             input_shapes={"Placeholder": [1, processed_frame.shape[0], processed_frame.shape[1], 3]},
-        #         )
-
-        #     try:
-        #         tflite_model = converter.convert()
-        #     except Exception:
-        #         raise DLCLiveError(
-        #             (
-        #                 "This model cannot be converted to tensorflow lite format. "
-        #                 "To use tensorflow lite for live inference, "
-        #                 "make sure to set TFGPUinference=False "
-        #                 "when exporting the model from DeepLabCut"
-        #             )
-        #         )
-
-        #     self.tflite_interpreter = tf.lite.Interpreter(model_content=tflite_model)
-        #     self.tflite_interpreter.allocate_tensors()
-        #     self.inputs = self.tflite_interpreter.get_input_details()
-        #     self.outputs = self.tflite_interpreter.get_output_details()
-
-        # elif self.model_type == "tensorrt":
-
-        #     graph_def = read_graph(model_file)
-        #     graph = finalize_graph(graph_def)
-        #     output_tensors = get_output_tensors(graph)
-        #     output_tensors = [ot.replace("DLC/", "") for ot in output_tensors]
-
-        #     if (TFVER[0] > 1) | (TFVER[0] == 1 & TFVER[1] >= 14):
-        #         converter = trt.TrtGraphConverter(
-        #             input_graph_def=graph_def,
-        #             nodes_blacklist=output_tensors,
-        #             is_dynamic_op=True,
-        #         )
-        #         graph_def = converter.convert()
-        #     else:
-        #         graph_def = trt.create_inference_graph(
-        #             input_graph_def=graph_def,
-        #             outputs=output_tensors,
-        #             max_batch_size=1,
-        #             precision_mode=self.precision,
-        #             is_dynamic_op=True,
-        #         )
-
-        #     graph = finalize_graph(graph_def)
-        #     self.sess, self.inputs, self.outputs = extract_graph(
-        #         graph, tf_config=self.tf_config
-        #     )
-
-        # else:
-
-        #     raise DLCLiveError(
-        #         "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
-        #             self.model_type
-        #         )
-        #     )
-
+        self.load_model()
+        
         # get pose of first frame (first inference is often very slow)
 
         if frame is not None:
@@ -448,7 +351,7 @@ class DLCLive(object):
         else:
             pose = None
 
-        self.is_initialized = True
+        # self.is_initialized = True
 
         return pose
 
@@ -470,60 +373,45 @@ class DLCLive(object):
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
-        # frame = self.process_frame(frame)
-
-        # if self.model_type in ["base", "tensorrt"]:
-
-        #     pose_output = self.sess.run(
-        #         self.outputs, feed_dict={self.inputs: np.expand_dims(frame, axis=0)}
-        #     )
-
-        # elif self.model_type == "tflite":
-
-        #     self.tflite_interpreter.set_tensor(
-        #         self.inputs[0]["index"],
-        #         np.expand_dims(frame, axis=0).astype(np.float32),
-        #     )
-        #     self.tflite_interpreter.invoke()
-
-        #     if len(self.outputs) > 1:
-        #         pose_output = [
-        #             self.tflite_interpreter.get_tensor(self.outputs[0]["index"]),
-        #             self.tflite_interpreter.get_tensor(self.outputs[1]["index"]),
-        #         ]
-        #     else:
-        #         pose_output = self.tflite_interpreter.get_tensor(
-        #             self.outputs[0]["index"]
-        #         )
-
-        # else:
-
-        #     raise DLCLiveError(
-        #         "model_type = {} is not supported. model_type must be 'base', 'tflite', or 'tensorrt'".format(
-        #             self.model_type
-        #         )
-        #     )
-
-        # check if using TFGPUinference flag
-        # if not, get pose from network output
-
-        # ! to be replaced
-        """
-        if len(pose_output) > 1:
-            scmap, locref = extract_cnn_output(
-                pose_output, self.cfg
-            )  # scmap = the heatmaps of likelihood of different key points being placed at different positions in the frame. locref = think it is something with refining how the 'peaks' in the heatmap is created.
-            num_outputs = self.cfg.get("num_outputs", 1)
-            if num_outputs > 1:  # seems to be if detecting more than 1 key point
-                self.pose = multi_pose_predict(
-                    scmap, locref, self.cfg["stride"], num_outputs
-                )
-            else:
-                self.pose = argmax_pose_predict(scmap, locref, self.cfg["stride"])
+        if frame is not None:
+            if frame.ndim >= 2:
+                self.convert2rgb = True
+            processed_frame = self.process_frame(frame)
+        
+        if self.model_type == "pytorch":
+            frame = torch.Tensor(processed_frame)
+            frame = frame.permute(2, 0, 1).unsqueeze(0)
+            outputs = self.pose_model(frame)
+            outputs_dict = {
+                'heatmap': torch.Tensor(outputs["bodypart"]["heatmap"]),
+                'locref': torch.Tensor(outputs["bodypart"]["locref"])
+            }
+            self.pose = self.pose_model.get_predictions(outputs)
+            self.pose = self.pose["bodypart"]
+            
+        elif self.model_type == "onnx":
+            frame = np.transpose(processed_frame, (2, 0, 1))
+            frame = np.expand_dims(frame, axis=0)
+            ort_inputs = {self.sess.get_inputs()[0].name: frame}
+            outputs = self.sess.run(
+                None,
+                ort_inputs
+            )
+            outputs_dict = {
+                'heatmap': torch.Tensor(outputs[0]),
+                'locref': torch.Tensor(outputs[1])
+            }
+            predictor = HeatmapPredictor.build(self.cfg)
+            self.pose = predictor(outputs=outputs_dict)
+            
         else:
-            pose = np.array(pose_output[0])
-            self.pose = pose[:, [1, 0, 2]]
 
+            raise DLCLiveError(
+                "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
+                    self.model_type
+                )
+            )
+        
         # display image if display=True before correcting pose for cropping/resizing
 
         if self.display is not None:
@@ -534,9 +422,10 @@ class DLCLive(object):
         if self.resize is not None:
             self.pose[:, :2] *= 1 / self.resize
 
+        print(self.pose["poses"])
         if self.cropping is not None:
-            self.pose[:, 0] += self.cropping[0]
-            self.pose[:, 1] += self.cropping[2]
+            self.pose["poses"][:, :, :, 0][0] += self.cropping[0]
+            self.pose["poses"][:, :, :, 1][0] += self.cropping[2]
 
         if self.dynamic_cropping is not None:
             self.pose[:, 0] += self.dynamic_cropping[0]
@@ -545,62 +434,8 @@ class DLCLive(object):
         # process the pose
 
         if self.processor:
-            self.pose = self.processor.process(self.pose, **kwargs)"""
-
-        # Mock pose
-        num_individuals = 1
-        num_kpts = 3
-
-        # ! Multi animal OR single animal: display only supports single for now
-
-        # self.pose = np.ones((num_individuals, num_kpts, 3))   # Multi animal
-        # self.pose = np.ones((num_kpts, 3))                    # Single animal
-
-        # mock_frame = np.ones((1, 3, 128, 128))
-        
-        pose_model = self.load_model()
-        if self.model_type == "pytorch":
-            frame = torch.Tensor(frame)
-            # Pytorch pose prediction
-            outputs = pose_model(frame)
-            print("pytorch outputs", outputs["bodypart"]["heatmap"].shape, outputs["bodypart"]["locref"].shape)
-            # print("strides", pose_model._strides)
-            # print(outputs["bodypart"].keys())
-            outputs_dict = {
-                'heatmap': torch.Tensor(outputs["bodypart"]["heatmap"]),
-                'locref': torch.Tensor(outputs["bodypart"]["locref"])
-            }
-            self.pose = pose_model.get_predictions(outputs)
-            # debug
-            print("predictor", pose_model.heads["bodypart"].predictor.apply_sigmoid)
+            self.pose = self.processor.process(self.pose, **kwargs)
             
-            # predictor = HeatmapPredictor()
-            # self.pose = predictor(stride=float(self.cfg["model"]["backbone"]["output_stride"]), outputs=outputs_dict)
-            # # debug
-            # print("predictor", predictor.apply_sigmoid)
-            
-        elif self.model_type == "onnx":
-            # print(glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx")))
-            model_path = glob.glob(os.path.normpath(self.pytorch_cfg + "/*.onnx"))[0]
-            ort_session = ort.InferenceSession(model_path)
-            frame = frame.detach().numpy()
-            ort_inputs = {ort_session.get_inputs()[0].name: frame}
-            outputs = ort_session.run(
-                None,
-                ort_inputs
-            )
-            print("onnx outputs", outputs[0].shape, outputs[1].shape)
-            # debug
-            # print(outputs[0].shape, outputs[1].shape)
-            outputs_dict = {
-                'heatmap': torch.Tensor(outputs[0]),
-                'locref': torch.Tensor(outputs[1])
-            }
-            predictor = HeatmapPredictor.build(self.cfg)
-            self.pose = predictor(outputs=outputs_dict)
-            # debug
-            print("predictor", predictor.apply_sigmoid, predictor.stride)
-        # print(self.pose, self.pose["bodypart"]["poses"].shape())
         return self.pose
 
     # def close(self):
