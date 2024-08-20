@@ -7,10 +7,6 @@ Licensed under GNU Lesser General Public License v3.0
 
 import glob
 import os
-import onnx
-import onnxruntime as ort
-
-
 # import tensorflow as tf
 import typing
 import warnings
@@ -19,33 +15,17 @@ from typing import List, Optional, Tuple
 
 import deeplabcut as dlc
 import numpy as np
+import onnx
+import onnxruntime as ort
 import ruamel.yaml
 import torch
 from deeplabcut.pose_estimation_pytorch.models import PoseModel
-from dlclive.predictor import HeatmapPredictor
-
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
-
-# try:
-#     TFVER = [int(v) for v in tf.__version__.split(".")]
-#     if TFVER[1] < 14:
-#         from tensorflow.contrib.tensorrt import trt_convert as trt
-#     else:
-#         from tensorflow.python.compiler.tensorrt import trt_convert as trt
-# except Exception:
-#     pass
-
-# from dlclive.graph import (
-#     read_graph,
-#     finalize_graph,
-#     get_output_nodes,
-#     get_output_tensors,
-#     extract_graph,
-# )
-
+from dlclive.pose import (argmax_pose_predict, extract_cnn_output,
+                          multi_pose_predict)
+from dlclive.predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
@@ -140,11 +120,9 @@ class DLCLive(object):
     def __init__(
         self,
         path: str,
-        model_type: str = "pytorch",
+        model_type: str = "onnx",
         precision: str = "FP32",
         device: str = "cpu",
-        # tf_config=None,
-        # pytorch_cfg=str,
         snapshot=str,
         cropping: Optional[List[int]] = None,
         dynamic: Tuple[bool, float, float] = (False, 0.5, 10),
@@ -181,21 +159,7 @@ class DLCLive(object):
         self.cfg_path = None
         self.sess = None
         self.pose_model = None
-        # self.inputs = None
-        # self.outputs = None
-        # self.tflite_interpreter = None
         self.pose = None
-        # self.is_initialized = False
-
-        # checks
-
-        # if self.model_type == "tflite" and self.dynamic[0]:
-        #     self.dynamic = (False, *self.dynamic[1:])
-        #     warnings.warn(
-        #         "Dynamic cropping is not supported for tensorflow lite inference. Dynamic cropping will not be used...",
-        #         DLCLiveWarning,
-        #     )
-
         self.read_config()
 
     def read_config(self):
@@ -207,9 +171,7 @@ class DLCLive(object):
             error thrown if pose configuration file does nott exist
         """
 
-        cfg_path = (
-            Path(self.path).resolve() / "pytorch_config.yaml"
-        )
+        cfg_path = Path(self.path).resolve() / "pytorch_config.yaml"
         if not cfg_path.exists():
             raise FileNotFoundError(
                 f"The pose configuration file for the exported model at {str(cfg_path)} was not found. Please check the path to the exported model directory"
@@ -231,7 +193,7 @@ class DLCLive(object):
         """
         return {param: getattr(self, param) for param in self.PARAMETERS}
 
-    def process_frame(self, frame):  #'self' holds all the arguments
+    def process_frame(self, frame):
         """
         Crops an image according to the object's cropping and dynamic properties.
 
@@ -246,18 +208,15 @@ class DLCLive(object):
             processed frame: convert type, crop, convert color
         """
 
-        # if frame.dtype != np.uint8:
-        #     frame = utils.convert_to_ubyte(frame)
-            
-        if self.cropping:  # if cropping is specified, it will be applied
-            print(frame.shape)
-            frame = frame[  # A: this produces a cropped image based on incoming coordinates x1,x2,y1,y2
+        # ! NORMALISE FRAMES
+
+        if self.cropping:
+            frame = frame[
                 self.cropping[2] : self.cropping[3], self.cropping[0] : self.cropping[1]
             ]
-            print(frame.shape)
         if self.dynamic[
             0
-        ]:  # to go through this if statement, the boolean would have to be = True. for it to react to false you'd have to write if not self.dynamic[0]
+        ]:
 
             if self.pose is not None:
 
@@ -270,7 +229,7 @@ class DLCLive(object):
 
                     x1 = int(
                         max([0, int(np.amin(x)) - self.dynamic[2]])
-                    )  # We think it is dtected if keypoint likelihood exceeds the dynamic threshold for dynamic cropping
+                    )
                     x2 = int(min([frame.shape[1], int(np.amax(x)) + self.dynamic[2]]))
                     y1 = int(max([0, int(np.amin(y)) - self.dynamic[2]]))
                     y2 = int(min([frame.shape[0], int(np.amax(y)) + self.dynamic[2]]))
@@ -298,28 +257,25 @@ class DLCLive(object):
                 raise FileNotFoundError(
                     "The model file {} does not exist.".format(model_path)
                 )
-            weights = torch.load(
-                model_path, map_location=torch.device(self.device)
-            )
+            weights = torch.load(model_path, map_location=torch.device(self.device))
             self.pose_model = PoseModel.build(self.cfg["model"])
             self.pose_model.load_state_dict(weights["model"])
-            
+
         elif self.model_type == "onnx":
             model_path = glob.glob(os.path.normpath(self.path + "/*.onnx"))[0]
             self.sess = ort.InferenceSession(model_path)
-            
+
             if not os.path.isfile(model_path):
                 raise FileNotFoundError(
                     "The model file {} does not exist.".format(model_path)
                 )
-                
+
         else:
             raise DLCLiveError(
                 "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
                     self.model_type
                 )
             )
-
 
     def init_inference(self, frame=None, **kwargs):
         """
@@ -343,7 +299,7 @@ class DLCLive(object):
 
         # load model
         self.load_model()
-        
+
         # get pose of first frame (first inference is often very slow)
 
         if frame is not None:
@@ -376,34 +332,30 @@ class DLCLive(object):
         if frame is not None:
             if frame.ndim >= 2:
                 self.convert2rgb = True
+                
             processed_frame = self.process_frame(frame)
-        
+
         if self.model_type == "pytorch":
             frame = torch.Tensor(processed_frame)
             frame = frame.permute(2, 0, 1).unsqueeze(0)
+            self.pose_model.eval()
             outputs = self.pose_model(frame)
-            outputs_dict = {
-                'heatmap': torch.Tensor(outputs["bodypart"]["heatmap"]),
-                'locref': torch.Tensor(outputs["bodypart"]["locref"])
-            }
             self.pose = self.pose_model.get_predictions(outputs)
             self.pose = self.pose["bodypart"]
-            
+
         elif self.model_type == "onnx":
-            frame = np.transpose(processed_frame, (2, 0, 1))
+            frame = processed_frame.astype(np.float32)
+            frame = np.transpose(frame, (2, 0, 1))
             frame = np.expand_dims(frame, axis=0)
             ort_inputs = {self.sess.get_inputs()[0].name: frame}
-            outputs = self.sess.run(
-                None,
-                ort_inputs
-            )
-            outputs_dict = {
-                'heatmap': torch.Tensor(outputs[0]),
-                'locref': torch.Tensor(outputs[1])
+            outputs = self.sess.run(None, ort_inputs)
+            outputs = {# ! optimise: make it one var 'outputs'
+                "heatmap": torch.Tensor(outputs[0]),
+                "locref": torch.Tensor(outputs[1]),
             }
             predictor = HeatmapPredictor.build(self.cfg)
-            self.pose = predictor(outputs=outputs_dict)
-            
+            self.pose = predictor(outputs=outputs)
+
         else:
 
             raise DLCLiveError(
@@ -411,18 +363,17 @@ class DLCLive(object):
                     self.model_type
                 )
             )
-        
+
         # display image if display=True before correcting pose for cropping/resizing
 
         if self.display is not None:
-            self.display.display_frame(frame, self.pose)
+            self.display.display_frame(processed_frame, self.pose)
 
         # if frame is cropped, convert pose coordinates to original frame coordinates
 
         if self.resize is not None:
             self.pose[:, :2] *= 1 / self.resize
 
-        print(self.pose["poses"])
         if self.cropping is not None:
             self.pose["poses"][:, :, :, 0][0] += self.cropping[0]
             self.pose["poses"][:, :, :, 1][0] += self.cropping[2]
@@ -435,7 +386,7 @@ class DLCLive(object):
 
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
-            
+
         return self.pose
 
     # def close(self):
