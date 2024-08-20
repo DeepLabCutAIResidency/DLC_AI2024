@@ -7,7 +7,7 @@ Licensed under GNU Lesser General Public License v3.0
 
 import glob
 import os
-# import tensorflow as tf
+import time
 import typing
 import warnings
 from pathlib import Path
@@ -292,8 +292,11 @@ class DLCLive(object):
             the pose estimated by DeepLabCut for the input image
         """
 
+        start = time.time()
         # load model
         self.load_model()
+        end = time.time()
+        print(f"Loading the model took {end - start} sec")
 
         # get pose of first frame (first inference is often very slow)
         if frame is not None:

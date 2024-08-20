@@ -67,7 +67,6 @@ class Display(object):
         """
         frame = np.squeeze(frame)
         frame = frame.astype(np.uint8)
-        # frame = np.transpose(frame, (1, 2, 0))
         pose = pose["poses"].squeeze()
         im_size = (frame.shape[1], frame.shape[0])
 
