@@ -23,7 +23,8 @@ from deeplabcut.pose_estimation_pytorch.models import PoseModel
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
+from dlclive.pose import (argmax_pose_predict, extract_cnn_output,
+                          multi_pose_predict)
 from dlclive.predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
@@ -342,7 +343,7 @@ class DLCLive(object):
             frame = torch.Tensor(processed_frame)
             frame = frame.permute(2, 0, 1).unsqueeze(0)
             frame = frame.to(self.device)
-            
+
             with torch.no_grad():
                 start = time.time()
                 outputs = self.pose_model(frame)
