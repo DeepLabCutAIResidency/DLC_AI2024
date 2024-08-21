@@ -262,10 +262,15 @@ class DLCLive(object):
         elif self.model_type == "onnx":
             model_path = glob.glob(os.path.normpath(self.path + "/*.onnx"))[0]
             opts = ort.SessionOptions()
-            opts.enable_profiling = True
-            self.sess = ort.InferenceSession(
-                model_path, opts, providers=["CUDAExecutionProvider"]
-            )  # ! give GPU or CPU provider depending on self.device!!
+            opts.enable_profiling = False
+            if self.device == "cuda":
+                self.sess = ort.InferenceSession(
+                    model_path, opts, providers=["CUDAExecutionProvider"]
+                )
+            elif self.device == "cpu":
+                self.sess = ort.InferenceSession(
+                    model_path, opts, providers=["CPUExecutionProvider"]
+                )
             self.predictor = HeatmapPredictor.build(self.cfg)
 
             if not os.path.isfile(model_path):
