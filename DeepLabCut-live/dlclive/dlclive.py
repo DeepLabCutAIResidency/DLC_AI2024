@@ -209,7 +209,7 @@ class DLCLive(object):
             processed frame: convert type, crop, convert color
         """
 
-        # ! NORMALISE FRAMES
+        # ! NORMALISATION ??
 
         if self.cropping:
             frame = frame[
@@ -271,6 +271,10 @@ class DLCLive(object):
             elif self.device == "cpu":
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CPUExecutionProvider"]
+                )
+            elif self.device == "tensorrt":
+                self.sess = ort.InferenceSession(
+                    model_path, opts, providers=["TensorrtExecutionProvider"]
                 )
             self.predictor = HeatmapPredictor.build(self.cfg)
 
