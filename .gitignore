@@ -34,3 +34,5 @@ Understandong code for Anna
 # data
 MNIST/
 
+# ONNX profiling files
+DeepLabCut-live/*.json
