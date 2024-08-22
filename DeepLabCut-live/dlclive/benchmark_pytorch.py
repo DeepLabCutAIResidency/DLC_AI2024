@@ -7,10 +7,15 @@ import h5py
 import numpy as np
 from PIL import ImageColor
 
+from dlclive import DLCLive
+
 
 def analyze_video(
     video_path: str,
-    dlc_live,
+    model_path: str,
+    model_type=str,
+    device=str,
+    display=True,
     pcutoff=0.5,
     display_radius=5,
     resize=None,
@@ -48,6 +53,13 @@ def analyze_video(
     poses : list of dict
         A list of dictionaries where each dictionary contains the frame number and the corresponding pose data.
     """
+    # Create the DLCLive object
+    dlc_live = DLCLive(
+        path=model_path,
+        model_type=model_type,
+        device=device,
+        display=display,
+    )
     # Ensure save directory exists
     os.makedirs(name=save_dir, exist_ok=True)
 
