@@ -170,3 +170,57 @@ def analyze_video(
         save_poses_to_files(video_path, save_dir, bodyparts, poses)
 
     return poses
+
+
+def save_poses_to_files(video_path, save_dir, bodyparts, poses):
+    """
+    Save the keypoint poses detected in the video to CSV and HDF5 files.
+
+    Parameters:
+    -----------
+    video_path : str
+        The path to the video file that was analyzed.
+    save_dir : str
+        The directory where the pose data files will be saved.
+    bodyparts : list of str
+        A list of body part names corresponding to the keypoints.
+    poses : list of dict
+        A list of dictionaries where each dictionary contains the frame number and the corresponding pose data.
+
+    Returns:
+    --------
+    None
+    """
+    base_filename = os.path.splitext(os.path.basename(video_path))[0]
+    csv_save_path = os.path.join(save_dir, f"{base_filename}_poses.csv")
+    h5_save_path = os.path.join(save_dir, f"{base_filename}_poses.h5")
+
+    # Save to CSV
+    with open(csv_save_path, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        header = ["frame"] + [
+            f"{bp}_{axis}" for bp in bodyparts for axis in ["x", "y", "confidence"]
+        ]
+        writer.writerow(header)
+        for entry in poses:
+            frame_num = entry["frame"]
+            pose = entry["pose"]["poses"][0][0]
+            row = [frame_num] + [item for kp in pose for item in kp]
+            writer.writerow(row)
+
+    # Save to HDF5
+    with h5py.File(h5_save_path, "w") as hf:
+        hf.create_dataset(name="frames", data=[entry["frame"] for entry in poses])
+        for i, bp in enumerate(bodyparts):
+            hf.create_dataset(
+                name=f"{bp}_x",
+                data=[entry["pose"]["poses"][0][0][i, 0].item() for entry in poses],
+            )
+            hf.create_dataset(
+                name=f"{bp}_y",
+                data=[entry["pose"]["poses"][0][0][i, 1].item() for entry in poses],
+            )
+            hf.create_dataset(
+                name=f"{bp}_confidence",
+                data=[entry["pose"]["poses"][0][0][i, 2].item() for entry in poses],
+            )
