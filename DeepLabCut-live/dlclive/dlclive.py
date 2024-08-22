@@ -354,7 +354,10 @@ class DLCLive(object):
                 end = time.time()
                 print(f"PyTorch inference took {end - start} sec")
 
+            start = time.time()
             self.pose = self.pose_model.get_predictions(outputs)
+            end = time.time()
+            print(f"PyTorch postprocessing took {end - start} sec")
             self.pose = self.pose["bodypart"]
 
         elif self.model_type == "onnx":
@@ -374,8 +377,11 @@ class DLCLive(object):
                 "locref": torch.Tensor(outputs[1]),
             }
 
+            start = time.time()
             self.pose = self.predictor(outputs=outputs)
-
+            end = time.time()
+            print(f"ONNX postprocessing took {end - start} sec")
+                
         else:
 
             raise DLCLiveError(
