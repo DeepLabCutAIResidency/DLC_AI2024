@@ -1,65 +1,58 @@
 import csv
 import os
+import platform
+import subprocess
+import sys
 import time  # Import the time module to measure time intervals
 
 import colorcet as cc
 import cv2
 import h5py
 import numpy as np
-from PIL import ImageColor
-
-from dlclive import DLCLive
-
-
-def download_benchmarking_data(
-    target_dir=".",
-    url="http://deeplabcut.rowland.harvard.edu/datasets/dlclivebenchmark.tar.gz",
-):
-    """
-    Downloads a DeepLabCut-Live benchmarking Data (videos & DLC models).
-    """
-    import tarfile
-    import urllib.request
-
-    from tqdm import tqdm
-
-    def show_progress(count, block_size, total_size):
-        pbar.update(block_size)
-
-    def tarfilenamecutting(tarf):
-        """' auxfun to extract folder path
-        ie. /xyz-trainsetxyshufflez/
-        """
-        for memberid, member in enumerate(tarf.getmembers()):
-            if memberid == 0:
-                parent = str(member.path)
-                l = len(parent) + 1
-            if member.path.startswith(parent):
-                member.path = member.path[l:]
-                yield member
-
-    response = urllib.request.urlopen(url)
-    print(
-        "Downloading the benchmarking data from the DeepLabCut server @Harvard -> Go Crimson!!! {}....".format(
-            url
-        )
-    )
-    total_size = int(response.getheader("Content-Length"))
-    pbar = tqdm(unit="B", total=total_size, position=0)
-    filename, _ = urllib.request.urlretrieve(url, reporthook=show_progress)
-    with tarfile.open(filename, mode="r:gz") as tar:
-        tar.extractall(target_dir, members=tarfilenamecutting(tar))
-
-
-import os
-import platform
-import subprocess
-import sys
-
 import torch
+from PIL import ImageColor
 from pip._internal.operations import freeze
 
-from dlclive import VERSION
+from dlclive import VERSION, DLCLive
+
+# def download_benchmarking_data(
+#     target_dir=".",
+#     url="http://deeplabcut.rowland.harvard.edu/datasets/dlclivebenchmark.tar.gz",
+# ):
+#     """
+#     Downloads a DeepLabCut-Live benchmarking Data (videos & DLC models).
+#     """
+#     import tarfile
+#     import urllib.request
+
+#     from tqdm import tqdm
+
+#     def show_progress(count, block_size, total_size):
+#         pbar.update(block_size)
+
+#     def tarfilenamecutting(tarf):
+#         """' auxfun to extract folder path
+#         ie. /xyz-trainsetxyshufflez/
+#         """
+#         for memberid, member in enumerate(tarf.getmembers()):
+#             if memberid == 0:
+#                 parent = str(member.path)
+#                 l = len(parent) + 1
+#             if member.path.startswith(parent):
+#                 member.path = member.path[l:]
+#                 yield member
+
+#     response = urllib.request.urlopen(url)
+#     print(
+#         "Downloading the benchmarking data from the DeepLabCut server @Harvard -> Go Crimson!!! {}....".format(
+#             url
+#         )
+#     )
+#     total_size = int(response.getheader("Content-Length"))
+#     pbar = tqdm(unit="B", total=total_size, position=0)
+#     filename, _ = urllib.request.urlretrieve(url, reporthook=show_progress)
+#     with tarfile.open(filename, mode="r:gz") as tar:
+#         tar.extractall(target_dir, members=tarfilenamecutting(tar))
 
 
 def get_system_info() -> dict:
