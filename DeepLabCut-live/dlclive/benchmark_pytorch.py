@@ -127,6 +127,8 @@ def analyze_video(
     pcutoff=0.5,
     display_radius=5,
     resize=None,
+    cropping=None,  # Adding cropping to the function parameters
+    dynamic=False,
     save_poses=False,
     save_dir="model_predictions",
     draw_keypoint_names=False,
@@ -147,6 +149,8 @@ def analyze_video(
         The radius of the circles drawn to represent keypoints on the video frames.
     resize : tuple of int (width, height) or None, optional, default=None
         The size to which the frames should be resized. If None, the frames are not resized.
+    cropping : list of int, optional, default=None
+        Cropping parameters in pixel number: [x1, x2, y1, y2]
     save_poses : bool, optional, default=False
         Whether to save the detected poses to CSV and HDF5 files.
     save_dir : str, optional, default="model_predictions"
@@ -161,14 +165,17 @@ def analyze_video(
     poses : list of dict
         A list of dictionaries where each dictionary contains the frame number and the corresponding pose data.
     """
-    # Create the DLCLive object
+    # Create the DLCLive object with cropping
     dlc_live = DLCLive(
         path=model_path,
         model_type=model_type,
         device=device,
         display=display,
         resize=resize,
+        cropping=cropping,  # Pass the cropping parameter
+        dynamic=dynamic,
     )
+
     # Ensure save directory exists
     os.makedirs(name=save_dir, exist_ok=True)
 
@@ -177,9 +184,9 @@ def analyze_video(
     if not cap.isOpened():
         print(f"Error: Could not open video file {video_path}")
         return
+
     # Start empty dict to save poses to for each frame
     poses = []
-    # Create variable indicate current frame. Later in the code +1 is added to frame_index
     frame_index = 0
 
     # Load the DLC model
@@ -224,7 +231,6 @@ def analyze_video(
         if not ret:
             break
         pose = dlc_live.get_pose(frame, pose_model=pose_model)
-
         try:
             pose = dlc_live.get_pose(frame, pose_model=pose_model)
         except Exception as e:

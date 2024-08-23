@@ -218,18 +218,23 @@ class DLCLive(object):
         if self.dynamic[0]:
 
             if self.pose is not None:
-                print(self.pose["bodypart"])
-                detected = self.pose[:, 2] > self.dynamic[1]
+                detected = self.pose["poses"][0][0][:, 2] > self.dynamic[1]
 
-                if np.any(detected):
+                # if np.any(detected.numpy()):
+                if torch.any(detected):
+                    # if detected.any():  # Use PyTorch's any() method
 
-                    x = self.pose[detected, 0]
-                    y = self.pose[detected, 1]
+                    x = self.pose["poses"][0][0][detected, 0]
+                    y = self.pose["poses"][0][0][detected, 1]
 
-                    x1 = int(max([0, int(np.amin(x)) - self.dynamic[2]]))
-                    x2 = int(min([frame.shape[1], int(np.amax(x)) + self.dynamic[2]]))
-                    y1 = int(max([0, int(np.amin(y)) - self.dynamic[2]]))
-                    y2 = int(min([frame.shape[0], int(np.amax(y)) + self.dynamic[2]]))
+                    x1 = int(max([0, int(torch.amin(x)) - self.dynamic[2]]))
+                    x2 = int(
+                        min([frame.shape[1], int(torch.amax(x)) + self.dynamic[2]])
+                    )
+                    y1 = int(max([0, int(torch.amin(y)) - self.dynamic[2]]))
+                    y2 = int(
+                        min([frame.shape[0], int(torch.amax(y)) + self.dynamic[2]])
+                    )
                     self.dynamic_cropping = [x1, x2, y1, y2]
 
                     frame = frame[y1:y2, x1:x2]
@@ -388,15 +393,15 @@ class DLCLive(object):
         # if frame is cropped, convert pose coordinates to original frame coordinates
 
         if self.resize is not None:
-            self.pose["poses"][:, :2] *= 1 / self.resize
+            self.pose["poses"][0][0][:, :2] *= 1 / self.resize
 
         if self.cropping is not None:
             self.pose["poses"][:, :, :, 0][0] += self.cropping[0]
             self.pose["poses"][:, :, :, 1][0] += self.cropping[2]
 
         if self.dynamic_cropping is not None:
-            self.pose["poses"][:, 0] += self.dynamic_cropping[0]
-            self.pose["poses"][:, 1] += self.dynamic_cropping[2]
+            self.pose["poses"][0][0][:, 0] += self.dynamic_cropping[0]
+            self.pose["poses"][0][0][:, 1] += self.dynamic_cropping[2]
 
         # process the pose
 
