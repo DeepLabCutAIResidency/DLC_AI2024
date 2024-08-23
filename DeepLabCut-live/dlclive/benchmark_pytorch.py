@@ -133,6 +133,7 @@ def analyze_video(
     save_dir="model_predictions",
     draw_keypoint_names=False,
     cmap="bmy",
+    get_sys_info=True,
 ):
     """
     Analyze a video to track keypoints using an imported DeepLabCut model, visualize keypoints on the video, and optionally save the keypoint data and the labelled video.
@@ -189,13 +190,6 @@ def analyze_video(
     poses = []
     frame_index = 0
 
-    # Load the DLC model
-    try:
-        pose_model = dlc_live.load_model()
-    except Exception as e:
-        print(f"Error: Could not load DLC model. Details: {e}")
-        return
-
     # Retrieve bodypart names and number of keypoints
     bodyparts = dlc_live.cfg["metadata"]["bodyparts"]
     num_keypoints = len(bodyparts)
@@ -230,9 +224,12 @@ def analyze_video(
         ret, frame = cap.read()
         if not ret:
             break
-        pose = dlc_live.get_pose(frame, pose_model=pose_model)
+
         try:
-            pose = dlc_live.get_pose(frame, pose_model=pose_model)
+            if frame_index == 0:
+                pose = dlc_live.init_inference(frame)  # load DLC model
+            else:
+                pose = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
@@ -273,6 +270,9 @@ def analyze_video(
 
     cap.release()
     vwriter.release()
+
+    if get_sys_info:
+        print(get_system_info())
 
     if save_poses:
         save_poses_to_files(video_path, save_dir, bodyparts, poses)
