@@ -20,11 +20,11 @@ import onnxruntime as ort
 import ruamel.yaml
 import torch
 from deeplabcut.pose_estimation_pytorch.models import PoseModel
+
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.pose import (argmax_pose_predict, extract_cnn_output,
-                          multi_pose_predict)
+from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
 from dlclive.predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
@@ -218,17 +218,23 @@ class DLCLive(object):
         if self.dynamic[0]:
 
             if self.pose is not None:
-                detected = self.pose["poses"][:, :, 2] > self.dynamic[1]
+                detected = self.pose["poses"][0][0][:, 2] > self.dynamic[1]
 
-                if np.any(detected):
+                # if np.any(detected.numpy()):
+                if torch.any(detected):
+                    # if detected.any():  # Use PyTorch's any() method
 
-                    x = self.pose[detected, 0]
-                    y = self.pose[detected, 1]
+                    x = self.pose["poses"][0][0][detected, 0]
+                    y = self.pose["poses"][0][0][detected, 1]
 
-                    x1 = int(max([0, int(np.amin(x)) - self.dynamic[2]]))
-                    x2 = int(min([frame.shape[1], int(np.amax(x)) + self.dynamic[2]]))
-                    y1 = int(max([0, int(np.amin(y)) - self.dynamic[2]]))
-                    y2 = int(min([frame.shape[0], int(np.amax(y)) + self.dynamic[2]]))
+                    x1 = int(max([0, int(torch.amin(x)) - self.dynamic[2]]))
+                    x2 = int(
+                        min([frame.shape[1], int(torch.amax(x)) + self.dynamic[2]])
+                    )
+                    y1 = int(max([0, int(torch.amin(y)) - self.dynamic[2]]))
+                    y2 = int(
+                        min([frame.shape[0], int(torch.amax(y)) + self.dynamic[2]])
+                    )
                     self.dynamic_cropping = [x1, x2, y1, y2]
 
                     frame = frame[y1:y2, x1:x2]
