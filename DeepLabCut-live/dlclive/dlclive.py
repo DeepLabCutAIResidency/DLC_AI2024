@@ -218,8 +218,7 @@ class DLCLive(object):
         if self.dynamic[0]:
 
             if self.pose is not None:
-                print(self.pose["bodypart"])
-                detected = self.pose[:, 2] > self.dynamic[1]
+                detected = self.pose["poses"][:, :, 2] > self.dynamic[1]
 
                 if np.any(detected):
 
@@ -261,7 +260,11 @@ class DLCLive(object):
             self.pose_model.eval()
 
         elif self.model_type == "onnx":
-            model_path = glob.glob(os.path.normpath(self.path + "/*.onnx"))[0]
+            model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
+            if self.precision == "FP16":
+                model_path = [model_paths[i] for i in range(len(model_paths)) if "fp16" in model_paths[i]][0]
+            else:
+                model_path = model_paths[0]
             opts = ort.SessionOptions()
             opts.enable_profiling = False
             if self.device == "cuda":
@@ -272,7 +275,8 @@ class DLCLive(object):
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CPUExecutionProvider"]
                 )
-            elif self.device == "tensorrt":
+            # ! TODO implement if statements for choice of tensorrt engine options (precision, and caching)
+            elif self.device == "tensorrt": 
                 provider = [("TensorrtExecutionProvider", {
                     "trt_engine_cache_enable": True,
                     "trt_engine_cache_path": "./trt_engines"
@@ -367,7 +371,9 @@ class DLCLive(object):
             self.pose = self.pose["bodypart"]
 
         elif self.model_type == "onnx":
-            frame = processed_frame.astype(np.float32)
+            if self.precision == "FP32": frame = processed_frame.astype(np.float32)
+            elif self.precision == "FP16": frame = processed_frame.astype(np.float16)
+            
             frame = np.transpose(frame, (2, 0, 1))
             frame = np.expand_dims(frame, axis=0)
 
@@ -407,15 +413,15 @@ class DLCLive(object):
         # if frame is cropped, convert pose coordinates to original frame coordinates
 
         if self.resize is not None:
-            self.pose[:, :2] *= 1 / self.resize
+            self.pose["poses"][0][0][:, :2] *= 1 / self.resize
 
         if self.cropping is not None:
-            self.pose["poses"][:, :, :, 0][0] += self.cropping[0]
-            self.pose["poses"][:, :, :, 1][0] += self.cropping[2]
+            self.pose["poses"][0][0][0] += self.cropping[0]
+            self.pose["poses"][0][0][0] += self.cropping[2]
 
         if self.dynamic_cropping is not None:
-            self.pose[:, 0] += self.dynamic_cropping[0]
-            self.pose[:, 1] += self.dynamic_cropping[2]
+            self.pose["poses"][0][0][:, 0] += self.dynamic_cropping[0]
+            self.pose["poses"][0][0][:, 1] += self.dynamic_cropping[2]
 
         # process the pose
 
