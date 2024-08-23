@@ -224,14 +224,16 @@ def analyze_video(
         ret, frame = cap.read()
         if not ret:
             break
-        if frame_index == 0:
-            pose = dlc_live.init_inference(frame)  # load DLC model
+        # if frame_index == 0:
+        #     pose = dlc_live.init_inference(frame)  # load DLC model
         try:
-            pose = dlc_live.get_pose(frame)
-            # if frame_index == 0:
-            #     pose = dlc_live.init_inference(frame)  # load DLC model
-            # else:
-            #     pose = dlc_live.get_pose(frame)
+            # pose = dlc_live.get_pose(frame)
+            if frame_index == 0:
+                # dlc_live.dynamic = (False, dynamic[1], dynamic[2]) # TODO trying to fix issues with dynamic cropping jumping back and forth between dyanmic cropped and original image
+                pose = dlc_live.init_inference(frame)  # load DLC model
+            else:
+                # dlc_live.dynamic = dynamic
+                pose = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
