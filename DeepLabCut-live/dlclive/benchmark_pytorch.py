@@ -57,7 +57,7 @@ def analyze_video(
         print(f"Error: Could not open video file {video_path}")
         return
     # Start empty dict to save poses to for each frame
-    poses = []
+    poses, times = [], []
     # Create variable indicate current frame. Later in the code +1 is added to frame_index
     frame_index = 0
 
@@ -106,11 +106,12 @@ def analyze_video(
             break
 
         try:
-            pose = dlc_live.get_pose(frame, pose_model=pose_model)
+            pose, inf_time = dlc_live.get_pose(frame, pose_model=pose_model)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
-
+        
+        times.append(inf_time)
         poses.append({"frame": frame_index, "pose": pose})
 
         # Visualize keypoints
@@ -150,7 +151,7 @@ def analyze_video(
     if save_poses:
         save_poses_to_files(video_path, save_dir, bodyparts, poses)
 
-    return poses
+    return poses, times 
 
 
 def save_poses_to_files(video_path, save_dir, bodyparts, poses):

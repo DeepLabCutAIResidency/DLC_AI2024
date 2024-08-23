@@ -121,7 +121,7 @@ class DLCLive(object):
         self,
         path: str,
         model_type: str = "onnx",
-        precision: str = "FP32",
+        precision: str = "FP16",
         device: str = "cpu",
         snapshot=str,
         cropping: Optional[List[int]] = None,
@@ -273,8 +273,12 @@ class DLCLive(object):
                     model_path, opts, providers=["CPUExecutionProvider"]
                 )
             elif self.device == "tensorrt":
+                provider = [("TensorrtExecutionProvider", {
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_engines"
+                })]
                 self.sess = ort.InferenceSession(
-                    model_path, opts, providers=["TensorrtExecutionProvider"]
+                    model_path, opts, providers=provider
                 )
             self.predictor = HeatmapPredictor.build(self.cfg)
 
@@ -313,11 +317,11 @@ class DLCLive(object):
 
         # get pose of first frame (first inference is often very slow)
         if frame is not None:
-            pose = self.get_pose(frame, **kwargs)
+            pose, inf_time = self.get_pose(frame, **kwargs)
         else:
             pose = None
 
-        return pose
+        return pose, inf_time
 
     def get_pose(self, frame=None, **kwargs):
         """
@@ -333,7 +337,7 @@ class DLCLive(object):
         pose :class:`numpy.ndarray`
             the pose estimated by DeepLabCut for the input image
         """
-
+        
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
@@ -351,8 +355,10 @@ class DLCLive(object):
             with torch.no_grad():
                 start = time.time()
                 outputs = self.pose_model(frame)
+                torch.cuda.synchronize() 
                 end = time.time()
-                print(f"PyTorch inference took {end - start} sec")
+                inf_time = end - start
+                print(f"PyTorch inference took {inf_time} sec")
 
             start = time.time()
             self.pose = self.pose_model.get_predictions(outputs)
@@ -370,7 +376,8 @@ class DLCLive(object):
             start = time.time()
             outputs = self.sess.run(None, ort_inputs)
             end = time.time()
-            print(f"ONNX inference took {end - start} sec")
+            inf_time = end - start
+            print(f"ONNX inference took {inf_time} sec")
 
             outputs = {
                 "heatmap": torch.Tensor(outputs[0]),
@@ -382,8 +389,10 @@ class DLCLive(object):
             end = time.time()
             print(f"ONNX postprocessing took {end - start} sec")
                 
+        # elif self.model_type == "torch_tensorrt":
+            
+            
         else:
-
             raise DLCLiveError(
                 "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
                     self.model_type
@@ -413,7 +422,7 @@ class DLCLive(object):
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
 
-        return self.pose
+        return self.pose, inf_time
 
     # def close(self):
     #     """ Close tensorflow session
