@@ -187,7 +187,8 @@ def analyze_video(
         return
 
     # Start empty dict to save poses to for each frame
-    poses = []
+    poses, times = [], []
+    # Create variable indicate current frame. Later in the code +1 is added to frame_index
     frame_index = 0
 
     # Retrieve bodypart names and number of keypoints
@@ -281,7 +282,7 @@ def analyze_video(
     if save_poses:
         save_poses_to_files(video_path, save_dir, bodyparts, poses)
 
-    return poses
+    return poses, times 
 
 
 def save_poses_to_files(video_path, save_dir, bodyparts, poses):

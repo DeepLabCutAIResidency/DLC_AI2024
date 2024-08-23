@@ -4,10 +4,15 @@
 # data
 tiny_all_bird
 Bird_datasets_merged
+MNIST/
+
 
 # outputs & logs
 output/
 *.csv
+# TensorRT cache
+DeepLabCut-live/trt_engines/
+
 
 Task4_multiple_bbox_per_image.py
 Task2_segmentation.ipynb
@@ -30,9 +35,6 @@ DeepLabCut-live/Ventral_gait_model
 
 #Misc
 Understandong code for Anna
-
-# data
-MNIST/
 
 # ONNX profiling files
 DeepLabCut-live/*.json
