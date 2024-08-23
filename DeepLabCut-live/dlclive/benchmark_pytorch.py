@@ -3,7 +3,7 @@ import os
 import platform
 import subprocess
 import sys
-import time  # Import the time module to measure time intervals
+import time
 
 import colorcet as cc
 import cv2
@@ -167,6 +167,7 @@ def analyze_video(
         model_type=model_type,
         device=device,
         display=display,
+        resize=resize,
     )
     # Ensure save directory exists
     os.makedirs(name=save_dir, exist_ok=True)
@@ -206,13 +207,9 @@ def analyze_video(
     # Get video writer setup
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_width, frame_height = (
-        int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-    )
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    if resize:
-        frame_width, frame_height = resize
     vwriter = cv2.VideoWriter(
         filename=output_video_path,
         fourcc=fourcc,
@@ -221,11 +218,12 @@ def analyze_video(
     )
 
     while True:
-        start_time = time.time()  # Start timing when the frame is loaded
+        start_time = time.time()
 
         ret, frame = cap.read()
         if not ret:
             break
+        pose = dlc_live.get_pose(frame, pose_model=pose_model)
 
         try:
             pose = dlc_live.get_pose(frame, pose_model=pose_model)
@@ -233,7 +231,7 @@ def analyze_video(
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
 
-        end_time = time.time()  # End timing after pose analysis
+        end_time = time.time()
         processing_time = end_time - start_time
         print(f"Frame {frame_index} processing time: {processing_time:.4f} seconds")
 
@@ -263,9 +261,6 @@ def analyze_video(
                         thickness=1,
                         lineType=cv2.LINE_AA,
                     )
-
-        if resize:
-            frame = cv2.resize(src=frame, dsize=resize)
 
         vwriter.write(image=frame)
         frame_index += 1
