@@ -210,7 +210,7 @@ class DLCLive(object):
         """
 
         # ! NORMALISE FRAMES
-
+        print(self.dynamic)
         if self.cropping:
             frame = frame[
                 self.cropping[2] : self.cropping[3], self.cropping[0] : self.cropping[1]

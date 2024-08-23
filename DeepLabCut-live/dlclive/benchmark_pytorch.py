@@ -128,7 +128,7 @@ def analyze_video(
     display_radius=5,
     resize=None,
     cropping=None,  # Adding cropping to the function parameters
-    dynamic=False,
+    dynamic=(False, 0.5, 10),
     save_poses=False,
     save_dir="model_predictions",
     draw_keypoint_names=False,
@@ -224,12 +224,14 @@ def analyze_video(
         ret, frame = cap.read()
         if not ret:
             break
-
+        if frame_index == 0:
+            pose = dlc_live.init_inference(frame)  # load DLC model
         try:
-            if frame_index == 0:
-                pose = dlc_live.init_inference(frame)  # load DLC model
-            else:
-                pose = dlc_live.get_pose(frame)
+            pose = dlc_live.get_pose(frame)
+            # if frame_index == 0:
+            #     pose = dlc_live.init_inference(frame)  # load DLC model
+            # else:
+            #     pose = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
