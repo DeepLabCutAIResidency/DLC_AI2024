@@ -269,7 +269,6 @@ class DLCLive(object):
             model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
             if self.precision == "FP16":
                 model_path = [model_paths[i] for i in range(len(model_paths)) if "fp16" in model_paths[i]][0]
-                print(model_path)
             else:
                 model_path = model_paths[0]
             opts = ort.SessionOptions()
@@ -278,7 +277,6 @@ class DLCLive(object):
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CUDAExecutionProvider"]
                 )
-                print(self.sess)
             elif self.device == "cpu":
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CPUExecutionProvider"]
@@ -367,7 +365,7 @@ class DLCLive(object):
             with torch.no_grad():
                 start = time.time()
                 outputs = self.pose_model(frame)
-                torch.cuda.synchronize() 
+                # torch.cuda.synchronize() 
                 end = time.time()
                 inf_time = end - start
                 print(f"PyTorch inference took {inf_time} sec")
