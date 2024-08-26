@@ -121,8 +121,9 @@ def get_system_info() -> dict:
 def analyze_video(
     video_path: str,
     model_path: str,
-    model_type=str,
-    device=str,
+    model_type: str,
+    device: str,
+    precision:str,
     display=True,
     pcutoff=0.5,
     display_radius=5,
@@ -175,6 +176,7 @@ def analyze_video(
         resize=resize,
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
+        precision=precision
     )
 
     # Ensure save directory exists
@@ -246,7 +248,7 @@ def analyze_video(
         poses.append({"frame": frame_index, "pose": pose})
 
         # Visualize keypoints
-        this_pose = pose["poses"][0][0]
+        this_pose = pose[0]["poses"][0][0]
         for j in range(this_pose.shape[0]):
             if this_pose[j, 2] > pcutoff:
                 x, y = map(int, this_pose[j, :2])
