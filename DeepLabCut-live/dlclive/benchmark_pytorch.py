@@ -123,7 +123,8 @@ def analyze_video(
     model_path: str,
     model_type: str,
     device: str,
-    precision:str,
+    precision: str = "FP32",
+    snapshot: str = None,
     display=True,
     pcutoff=0.5,
     display_radius=5,
@@ -176,7 +177,8 @@ def analyze_video(
         resize=resize,
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
-        precision=precision
+        precision=precision,
+        snapshot=snapshot
     )
 
     # Ensure save directory exists
