@@ -163,8 +163,12 @@ class DLCLive(object):
         self.pose = None
         
         if self.model_type == "pytorch" and (self.snapshot) is None:
-            raise FileNotFoundError(
-                f"The pose configuration file for the exported model at {str(cfg_path)} was not found. Please check the path to the exported model directory"
+            raise DLCLiveError(
+                f"The selected model type is '{self.model_type}', but no snapshot was provided"
+            )
+        if self.model_type == "pytorch" and (self.device) == "tensorrt":
+            raise DLCLiveError(
+                f"The selected model type is '{self.model_type}' is not enabled by the selected runtime {self.device}"
             )
         self.read_config()
 
@@ -179,8 +183,8 @@ class DLCLive(object):
 
         cfg_path = Path(self.path).resolve() / "pytorch_config.yaml"
         if not cfg_path.exists():
-            raise DLCLiveError(
-                f"The selected model type is {self.model_type}, but no snapshot was provided"
+            raise FileNotFoundError(
+                f"The pose configuration file for the exported model at {str(cfg_path)} was not found. Please check the path to the exported model directory"
             )
 
         ruamel_file = ruamel.yaml.YAML()
