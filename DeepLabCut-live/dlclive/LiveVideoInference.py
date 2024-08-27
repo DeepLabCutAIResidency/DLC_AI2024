@@ -104,7 +104,7 @@ def analyze_live_video(
 
     Parameters:
     -----------
-    camera : float, deafult=0 (webcam)
+    camera : float, default=0 (webcam)
         The camera to record the live video from
     experiment_name : str, default = "Test"
         Prefix to label generated pose and video files
@@ -149,12 +149,11 @@ def analyze_live_video(
     # Load video
     cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
-        print(f"Error: Could not open video file {video_path}")
+        print(f"Error: Could not open video file {camera}")
         return
 
     # Start empty dict to save poses to for each frame
     poses, times = [], []
-    # Create variable indicate current frame. Later in the code +1 is added to frame_index
     frame_index = 0
 
     # Retrieve bodypart names and number of keypoints
@@ -192,15 +191,11 @@ def analyze_live_video(
         ret, frame = cap.read()
         if not ret:
             break
-        # if frame_index == 0:
-        #     pose = dlc_live.init_inference(frame)  # load DLC model
+
         try:
-            # pose = dlc_live.get_pose(frame)
             if frame_index == 0:
-                # dlc_live.dynamic = (False, dynamic[1], dynamic[2]) # TODO trying to fix issues with dynamic cropping jumping back and forth between dyanmic cropped and original image
                 pose = dlc_live.init_inference(frame)  # load DLC model
             else:
-                # dlc_live.dynamic = dynamic
                 pose = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
@@ -240,8 +235,17 @@ def analyze_live_video(
         vwriter.write(image=frame)
         frame_index += 1
 
+        # Display the frame
+        if display:
+            cv2.imshow("DLCLive", frame)
+
+        # Add key press check for quitting
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
     cap.release()
     vwriter.release()
+    cv2.destroyAllWindows()
 
     if get_sys_info:
         print(get_system_info())
@@ -258,7 +262,8 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
 
     Parameters:
     -----------
-    experiment_name
+    experiment_name : str
+        Name of the experiment, used as a prefix for saving files.
     save_dir : str
         The directory where the pose data files will be saved.
     bodyparts : list of str
@@ -283,8 +288,8 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
         writer.writerow(header)
         for entry in poses:
             frame_num = entry["frame"]
-            pose = entry["pose"]["poses"][0][0]
-            row = [frame_num] + [item for kp in pose for item in kp]
+            pose_data = entry["pose"][0][0]  # Adjusted to use indices instead of keys
+            row = [frame_num] + [item for kp in pose_data for item in kp]
             writer.writerow(row)
 
     # Save to HDF5
@@ -293,13 +298,19 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
         for i, bp in enumerate(bodyparts):
             hf.create_dataset(
                 name=f"{bp}_x",
-                data=[entry["pose"]["poses"][0][0][i, 0].item() for entry in poses],
+                data=[
+                    entry["pose"][0][0][i, 0].item() for entry in poses
+                ],  # Adjusted to use indices
             )
             hf.create_dataset(
                 name=f"{bp}_y",
-                data=[entry["pose"]["poses"][0][0][i, 1].item() for entry in poses],
+                data=[
+                    entry["pose"][0][0][i, 1].item() for entry in poses
+                ],  # Adjusted to use indices
             )
             hf.create_dataset(
                 name=f"{bp}_confidence",
-                data=[entry["pose"]["poses"][0][0][i, 2].item() for entry in poses],
+                data=[
+                    entry["pose"][0][0][i, 2].item() for entry in poses
+                ],  # Adjusted to use indices
             )
