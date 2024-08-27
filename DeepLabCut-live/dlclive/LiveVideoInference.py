@@ -288,11 +288,13 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
         writer.writerow(header)
         for entry in poses:
             frame_num = entry["frame"]
-            print(entry["pose"][0]["poses"][0][0])
-            pose_data = entry["pose"][0]["poses"][0][
-                0
-            ]  # Adjusted to use indices instead of keys
-            row = [frame_num] + [item for kp in pose_data for item in kp]
+            pose_data = entry["pose"][0]["poses"][0][0]
+            # Convert tensor data to numeric values
+            row = [frame_num] + [
+                item.item() if isinstance(item, torch.Tensor) else item
+                for kp in pose_data
+                for item in kp
+            ]
             writer.writerow(row)
 
     # Save to HDF5
@@ -302,18 +304,15 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
             hf.create_dataset(
                 name=f"{bp}_x",
                 data=[
-                    entry["pose"][0]["poses"][0][0][i, 0].item() for entry in poses
-                ],  # Adjusted to use indices
+                    (
+                        entry["pose"][0]["poses"][0][0][i, 0].item()
+                        if isinstance(
+                            entry["pose"][0]["poses"][0][0][i, 0], torch.Tensor
+                        )
+                        else entry["pose"][0]["poses"][0][0][i, 0]
+                    )
+                    for entry in poses
+                ],
             )
             hf.create_dataset(
-                name=f"{bp}_y",
-                data=[
-                    entry["pose"][0]["poses"][0][0][i, 1].item() for entry in poses
-                ],  # Adjusted to use indices
-            )
-            hf.create_dataset(
-                name=f"{bp}_confidence",
-                data=[
-                    entry["pose"][0]["poses"][0][0][i, 2].item() for entry in poses
-                ],  # Adjusted to use indices
-            )
+               
