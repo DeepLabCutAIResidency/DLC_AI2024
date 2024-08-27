@@ -10,6 +10,10 @@ MNIST/
 # outputs & logs
 output/
 *.csv
+*.mp4
+*.avi
+*.h5
+
 # TensorRT cache
 DeepLabCut-live/trt_engines/
 
