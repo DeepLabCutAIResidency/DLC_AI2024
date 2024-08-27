@@ -325,6 +325,7 @@ class DLCLive(object):
         end = time.time()
         print(f"Loading the model took {end - start} sec")
 
+        inf_time = 0.
         # get pose of first frame (first inference is often very slow)
         if frame is not None:
             pose, inf_time = self.get_pose(frame, **kwargs)
@@ -347,7 +348,7 @@ class DLCLive(object):
         pose :class:`numpy.ndarray`
             the pose estimated by DeepLabCut for the input image
         """
-        
+        inf_time = 0.
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 

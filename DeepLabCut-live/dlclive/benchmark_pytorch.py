@@ -251,28 +251,28 @@ def analyze_video(
 
         # Visualize keypoints
         this_pose = pose[0]["poses"][0][0]
-        for j in range(this_pose.shape[0]):
-            if this_pose[j, 2] > pcutoff:
-                x, y = map(int, this_pose[j, :2])
-                cv2.circle(
-                    frame,
-                    center=(x, y),
-                    radius=display_radius,
-                    color=colors[j],
-                    thickness=-1,
-                )
+        # for j in range(this_pose.shape[0]):
+        #     if this_pose[j, 2] > pcutoff:
+        #         x, y = map(int, this_pose[j, :2])
+        #         cv2.circle(
+        #             frame,
+        #             center=(x, y),
+        #             radius=display_radius,
+        #             color=colors[j],
+        #             thickness=-1,
+        #         )
 
-                if draw_keypoint_names:
-                    cv2.putText(
-                        frame,
-                        text=bodyparts[j],
-                        org=(x + 10, y),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5,
-                        color=colors[j],
-                        thickness=1,
-                        lineType=cv2.LINE_AA,
-                    )
+        #         if draw_keypoint_names:
+        #             cv2.putText(
+        #                 frame,
+        #                 text=bodyparts[j],
+        #                 org=(x + 10, y),
+        #                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        #                 fontScale=0.5,
+        #                 color=colors[j],
+        #                 thickness=1,
+        #                 lineType=cv2.LINE_AA,
+        #             )
 
         vwriter.write(image=frame)
         frame_index += 1
