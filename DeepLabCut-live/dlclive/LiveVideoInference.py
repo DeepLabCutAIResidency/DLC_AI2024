@@ -288,7 +288,10 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
         writer.writerow(header)
         for entry in poses:
             frame_num = entry["frame"]
-            pose_data = entry["pose"][0][0]  # Adjusted to use indices instead of keys
+            print(entry["pose"][0]["poses"][0][0])
+            pose_data = entry["pose"][0]["poses"][0][
+                0
+            ]  # Adjusted to use indices instead of keys
             row = [frame_num] + [item for kp in pose_data for item in kp]
             writer.writerow(row)
 
@@ -299,18 +302,18 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
             hf.create_dataset(
                 name=f"{bp}_x",
                 data=[
-                    entry["pose"][0][0][i, 0].item() for entry in poses
+                    entry["pose"][0]["poses"][0][0][i, 0].item() for entry in poses
                 ],  # Adjusted to use indices
             )
             hf.create_dataset(
                 name=f"{bp}_y",
                 data=[
-                    entry["pose"][0][0][i, 1].item() for entry in poses
+                    entry["pose"][0]["poses"][0][0][i, 1].item() for entry in poses
                 ],  # Adjusted to use indices
             )
             hf.create_dataset(
                 name=f"{bp}_confidence",
                 data=[
-                    entry["pose"][0][0][i, 2].item() for entry in poses
+                    entry["pose"][0]["poses"][0][0][i, 2].item() for entry in poses
                 ],  # Adjusted to use indices
             )
