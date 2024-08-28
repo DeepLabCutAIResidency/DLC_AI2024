@@ -1,58 +1,22 @@
-# DeepLabCut-live! SDK<img src="https://images.squarespace-cdn.com/content/v1/57f6d51c9f74566f55ecf271/1606082050387-M8M1CFI5DFUZCBAAUI0W/ke17ZwdGBToddI8pDm48kLuMKy7Ws6mFofiFehYynfdZw-zPPgdn4jUwVcJE1ZvWQUxwkmyExglNqGp0IvTJZUJFbgE-7XRK3dMEBRBhUpzp2tFVMcEgqZM8QO7VXXQogrsLnYKC4n4YnYuHC1HMRWygQlqMNAoTF9HaycikLeg/DLClive.png?format=750w" width="350" title="DLC-live" alt="DLC LIVE!" align="right" vspace = "50">
+This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time applications that has minimal (software) dependencies. This new DLC Live pipeline can handle DLC models produced in PyTorch, as of DLC 3.0.
 
-<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-![PyPI - Python Version](https://img.shields.io/pypi/v/deeplabcut-live)
-[![Downloads](https://pepy.tech/badge/deeplabcut-live)](https://pepy.tech/project/deeplabcut-live)
-[![Downloads](https://pepy.tech/badge/deeplabcut-live/month)](https://pepy.tech/project/deeplabcut-live)
-![Python package](https://github.com/DeepLabCut/DeepLabCut-live/workflows/Python%20package/badge.svg)
-[![GitHub stars](https://img.shields.io/github/stars/DeepLabCut/DeepLabCut-live.svg?style=social&label=Star)](https://github.com/DeepLabCut/DeepLabCut-live)
-[![GitHub forks](https://img.shields.io/github/forks/DeepLabCut/DeepLabCut-live.svg?style=social&label=Fork)](https://github.com/DeepLabCut/DeepLabCut-live)
-[![Image.sc forum](https://img.shields.io/badge/dynamic/json.svg?label=forum&amp;url=https%3A%2F%2Fforum.image.sc%2Ftags%2Fdeeplabcut.json&amp;query=%24.topic_list.tags.0.topic_count&amp;colorB=brightgreen&amp;&amp;suffix=%20topics&amp;logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABPklEQVR42m3SyyqFURTA8Y2BER0TDyExZ+aSPIKUlPIITFzKeQWXwhBlQrmFgUzMMFLKZeguBu5y+//17dP3nc5vuPdee6299gohUYYaDGOyyACq4JmQVoFujOMR77hNfOAGM+hBOQqB9TjHD36xhAa04RCuuXeKOvwHVWIKL9jCK2bRiV284QgL8MwEjAneeo9VNOEaBhzALGtoRy02cIcWhE34jj5YxgW+E5Z4iTPkMYpPLCNY3hdOYEfNbKYdmNngZ1jyEzw7h7AIb3fRTQ95OAZ6yQpGYHMMtOTgouktYwxuXsHgWLLl+4x++Kx1FJrjLTagA77bTPvYgw1rRqY56e+w7GNYsqX6JfPwi7aR+Y5SA+BXtKIRfkfJAYgj14tpOF6+I46c4/cAM3UhM3JxyKsxiOIhH0IO6SH/A1Kb1WBeUjbkAAAAAElFTkSuQmCC)](https://forum.image.sc/tags/deeplabcut)
-[![Gitter](https://badges.gitter.im/DeepLabCut/community.svg)](https://gitter.im/DeepLabCut/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![Twitter Follow](https://img.shields.io/twitter/follow/DeepLabCut.svg?label=DeepLabCut&style=social)](https://twitter.com/DeepLabCut)
+In DLC Live TensorFlow, model export is handled in the main DLC package. 
+The current pipeline handles both model export and video inference. The means that currently DLCLive still uses the main DLC package as well. The aim is for the model export to be a functio of the main DLC package, allowing DLC Live to be a standalone package with minimal software dependencies.
 
-This package contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time applications that has minimal (software) dependencies. Thus, it is as easy to install as possible (in particular, on atypical systems like [NVIDIA Jetson boards](https://developer.nvidia.com/buy-jetson)).
+**Contents of this package:** This package provides a `DLCLive` class which enables pose estimation online to provide feedback. This object loads and prepares a DeepLabCut network for inference, and will return the predicted pose for single images. 
 
-**Performance:** If you would like to see estimates on how your model should perform given different video sizes, neural network type, and hardware, please see: https://deeplabcut.github.io/DLC-inferencespeed-benchmark/
+In the future this package should also contain a `Processor` object. We have not yet had time to work on this object, and the code currently provides a placeholder object for `Processor` that does not carry out any specific function.
 
-If you have different hardware, please consider submitting your results too! https://github.com/DeepLabCut/DLC-inferencespeed-benchmark
+For details on the `Processor` object in DLCLive TensorFlow, see documentation [here](dlclive/processor/README.md).
 
-**What this SDK provides:** This package provides a `DLCLive` class which enables pose estimation online to provide feedback. This object loads and prepares a DeepLabCut network for inference, and will return the predicted pose for single images. 
+###### 🎥🎥🎥 Note :: alone, this object does not record video or capture images from a camera. This pipeline provides scripts to run video inference on a prerecorded video, as well as video inference on a live video feed.🎥🎥🎥
 
-To perform processing on poses (such as predicting the future pose of an animal given it's current pose, or to trigger external hardware like send TTL pulses to a laser for optogenetic stimulation), this object takes in a `Processor` object. Processor objects must contain two methods: process and save.
-
-- The `process` method takes in a pose, performs some processing, and returns processed pose.
-- The `save` method saves any valuable data created by or used by the processor
-
-For more details and examples, see documentation [here](dlclive/processor/README.md).
-
-###### 🔥🔥🔥🔥🔥 Note :: alone, this object does not record video or capture images from a camera. This must be done separately, i.e. see our [DeepLabCut-live GUI](https://github.com/gkane26/DeepLabCut-live-GUI).🔥🔥🔥
-
-### News! 
-- March 2022: DeepLabCut-Live! 1.0.2 supports poetry installation `poetry install deeplabcut-live`, thanks to PR #60.
-- March 2021: DeepLabCut-Live! [**version 1.0** is released](https://pypi.org/project/deeplabcut-live/), with support for tensorflow 1 and tensorflow 2!
-- Feb 2021: DeepLabCut-Live! was featured in **Nature Methods**: ["Real-time behavioral analysis"](https://www.nature.com/articles/s41592-021-01072-z)
-- Jan 2021: full **eLife** paper is published: ["Real-time, low-latency closed-loop feedback using markerless posture tracking"](https://elifesciences.org/articles/61909)
-- Dec 2020: we talked to **RTS Suisse Radio** about DLC-Live!: ["Capture animal movements in real time"](https://www.rts.ch/play/radio/cqfd/audio/capturer-les-mouvements-des-animaux-en-temps-reel?id=11782529)
-
-
-### Installation:
-
-Please see our instruction manual to install on a [Windows or Linux machine](docs/install_desktop.md) or on a [NVIDIA Jetson Development Board](docs/install_jetson.md). Note, this code works with tensorflow (TF) 1 or TF 2 models, but TF requires that whatever version you exported your model with, you must import with the same version (i.e., export with TF1.13, then use TF1.13 with DlC-Live; export with TF2.3, then use TF2.3 with DLC-live).
-
-- available on pypi as: `pip install deeplabcut-live`
-
-Note, you can then test your installation by running:
-
-`dlc-live-test`
-
-If installed properly, this script will i) create a temporary folder ii) download the full_dog model from the [DeepLabCut Model Zoo](http://www.mousemotorlab.org/dlc-modelzoo), iii) download a short video clip of a dog, and iv) run inference while displaying keypoints. v) remove the temporary folder.
-
-<img src="https://images.squarespace-cdn.com/content/v1/57f6d51c9f74566f55ecf271/1606081086014-TG9GWH63ZGGOO7K779G3/ke17ZwdGBToddI8pDm48kHiSoSToKfKUI9t99vKErWoUqsxRUqqbr1mOJYKfIPR7LoDQ9mXPOjoJoqy81S2I8N_N4V1vUb5AoIIIbLZhVYxCRW4BPu10St3TBAUQYVKcOoIGycwr1shdgJWzLuxyzjLbSRGBFFxjYMBr42yCvRK5HHsLZWtMlAHzDU294nCd/dlclivetest.png?format=1000w" width="650" title="DLC-live-test" alt="DLC LIVE TEST" align="center" vspace = "50">
 
 ### Quick Start: instructions for use:
 
-1. Initialize `Processor` (if desired)
+To use DLCLive 3.0, two methods for doing so are provided. Besides using the provided scripts to open a camera feed (live or prerecorded), it is also possible to use the DLCLive object directly. 
+TODO: does the current version of DLCLive support this?
+1. Initialize `Processor` (if desired) - the current version of this repo has not actively worked with different processors.
 2. Initialize the `DLCLive` object
 3. Perform pose estimation!
 
@@ -64,90 +28,113 @@ dlc_live.init_inference(<your image>)
 dlc_live.get_pose(<your image>)
 ```
 
+`DLCLive` **inputs:**
+  - `<your image>` = is a numpy array of each frame
+  - `<path to exported model directory>` = path to the folder that has the `.pt` and config file (for pytorch projects) or `.onnx` files. The .onnx file is acquired after using the torch.onnx.export function (see demo notebook for examples of how to do so). `.pt` and config files are provided in the folder of the DLC project.  
+
+  ```
+dlc-project
+|
+|___dlc-models-pytorch
+|   |__ iterationX
+|       |__ shuffleX
+|           |__pytorch_config.yaml
+|           |__snapshot-X.pt
+|  
+
+```
+  
+  TODO: add docs instructions for model export using ONNX.
+
+
+
+Both video inference on pre-recorded and live video feeds use the `DLCLive` as the central component.
+
 `DLCLive` **parameters:**
 
   - `path` = string; full path to the exported DLC model directory
-  - `model_type` = string; the type of model to use for inference. Types include:
-      - `base` = the base DeepLabCut model
-      - `tensorrt` = apply [tensor-rt](https://developer.nvidia.com/tensorrt) optimizations to model
-      - `tflite` = use [tensorflow lite](https://www.tensorflow.org/lite) inference (in progress...)
+  - `device` = str, default = cpu; whether the model should run on GPU (if available) or CPU.
+  - `model_type` = string; the type of model to use for inference. Default = onnx. Types include:
+      - `pytorch` = the base DeepLabCut model produced by DLC 3.0 using PyTorch as the engine 
+      - `onnx` = this assumes the user has exported their PyTorch model (using a .pt snapshot and pytorch_config file) to an ONNX model [onnx](https://onnxruntime.ai/pytorch) and uses ONNX runtime
+      - `tensorrt` = currently compatible with ONNX models but not PyTorch models, and uses a TensorRT runtime ##DIKRA is this correctly specified?
+  - `precision` = string, optional
+        precision of model weights. Can be 'FP32' (default) or 'FP16'.
   - `cropping` = list of int, optional; cropping parameters in pixel number: [x1, x2, y1, y2]
-  - `dynamic` = tuple, optional; defines parameters for dynamic cropping of images
-      - `index 0` = use dynamic cropping, bool
-      - `index 1` = detection threshold, float
-      - `index 2` = margin (in pixels) around identified points, int
-  - `resize` = float, optional; factor by which to resize image (resize=0.5 downsizes both width and height of image by half). Can be used to downsize large images for faster inference
-  - `processor` = dlc pose processor object, optional
-  - `display` = bool, optional; display processed image with DeepLabCut points? Can be used to troubleshoot cropping and resizing parameters, but is very slow
-
-`DLCLive` **inputs:**
-
-  - `<path to exported model directory>` = path to the folder that has the `.pb` files that you acquire after running `deeplabcut.export_model`
-  - `<your image>` = is a numpy array of each frame
+  - `dynamic` = triple, containing (state, detectiontreshold, margin). If not wanting to use dynamic cropping, state should be set to False. default = (False, 0.5, 10). 
+      - If the state is true, then dynamic cropping will be performed. That means that if an object is detected (i.e. any body part > detectiontreshold), then object boundaries are computed according to the smallest/largest x position and smallest/largest y position of all body parts. This  window is expanded by the margin and from then on only the posture within this crop is analyzed (until the object is lost, i.e. <detectiontreshold). The current position is utilized for updating the crop window for the next frame (this is why the margin is important and should be set large enough given the movement of the animal).
+  - `resize` = float, optional; factor by which to resize image (resize=0.5 downsizes both width and height of image by half). Can be used to downsize large images for faster inference.
+  - `processor` = dlc pose processor object, optional. The current code has not yet done any active use of the processor parameter.
+  - `display` = bool, optional; display processed image with DeepLabCut points. Can be used to troubleshoot cropping and resizing parameters, but can be slow
+  - `pcutoff` = float, default = 0.5; confidence cut-off for displaying key points.
+  - `convert2rgb` = bool, optional; boolean flag to convert frames from BGR to RGB color scheme
+  - `display_radius` = int, default = 3; radius of the points on the video display
+  - `display_cmap`= str, default = "bmy"; color scheme of the key points on the display
 
 
-### Benchmarking/Analyzing your exported DeepLabCut models
+#### Option 1: Video inference on pre-recorded videos
 
-DeepLabCut-live offers some analysis tools that allow users to peform the following operations on videos, from python or from the command line:
+TODO add __main__ element to script to use it in bash as well, not solely for iporting functions.
 
-1. Test inference speed across a range of image sizes, downsizing images by specifying the `resize` or `pixels` parameter. Using the `pixels` parameter will resize images to the desired number of `pixels`, without changing the aspect ratio. Results will be saved (along with system info) to a pickle file if you specify an output directory.
+TODO add function for making saving a video optional
+
+The benchmark_pytorch.py script provides the 'analyze_video' function for doing video inference and benchmark inference speed on a pre-recorded video.
+
+The function takes the same parameters as `DLCLive` as it directly calls the DLCLive object. In addition, it takes the following arguments:
+
+  - `video_path` = string; The path to the video file to be analyzed.
+  - `save_poses` = bool, optional, default=False; Whether to save the detected poses to CSV and HDF5 files.
+  - `save_dir` = str, optional, default="model_predictions"; The directory where the output video and pose data will be saved.
+  - `draw_keypoint_names` = draw_keypoint_names : bool, optional, default=False; Whether to draw the names of the keypoints on the video frames.
+  - `cmap` = str, optional, default="bmy"; The colormap from the colorcet library to use for keypoint visualization.
+  - `get_sys_info` = bool, optional, default=True; Whether or not to obtain the information of the system running the video inference. Will be printed, not saved. TODO save this information
+
+Example of how to run the function:
 ##### python
 ```python
-dlclive.benchmark_videos('/path/to/exported/model', ['/path/to/video1', '/path/to/video2'], output='/path/to/output', resize=[1.0, 0.75, '0.5'])
-```
-##### command line
-```
-dlc-live-benchmark /path/to/exported/model /path/to/video1 /path/to/video2 -o /path/to/output -r 1.0 0.75 0.5
+from dlclive.benchmark_pytorch import analyze_video
+
+analyze_video(model_path='/path/to/exported/model', video_path='/path/to/video', save_dir='/path/to/output', resize=0.5)
 ```
 
-2. Display keypoints to visually inspect the accuracy of exported models on different image sizes (note, this is slow and only for testing purposes):
 
+#### Option 2: Inference on live video feed
+
+
+TODO add __main__ element to script to use it in bash as well, not solely for iporting functions.
+
+
+TODO add function for making saving a video optional
+
+The LiveVideoInference.py script provides the 'analyze_live_video' function for doing live video tracking.
+
+The function is similar in function to 'analyze_video' but replaces `video_path` with the following arguments:
+
+  - `camera` = float, default = 0; The camera to record the live video from. The default '0' is the webcam if using a laptop. If using a USB webcam, this will typically obtain the number of one of the USB ports, e.g. 1. If using a camera such a Basler, this will likely need confugiration. We have not tested this.
+  - `experiment_name` = str, default = "Test"; Prefix to label generated pose and video files.
+
+Example of how to run the function:
 ##### python
 ```python
-dlclive.benchmark_videos('/path/to/exported/model', '/path/to/video', resize=0.5, display=True, pcutoff=0.5, display_radius=4, cmap='bmy')
+from dlclive.LiveVideoInference import analyze_live_video
+
+analyze_video(model_path='/path/to/exported/model', camera=0, experiment_name = "experiment_20240827", save_dir='/path/to/output', resize=0.5)
 ```
-##### command line
-```
-dlc-live-benchmark /path/to/exported/model /path/to/video -r 0.5 --display --pcutoff 0.5 --display-radius 4 --cmap bmy
-```
+**Demo Notebook:**
+this repository contains a notebook for demonstrating the functionalities of the DLCLive 3.0. This can be found in [DLCLive-Demo.ipynb](https://github.com/DeepLabCutAIResidency/DLC_AI2024/blob/main/DeepLabCut-live/DLCLive-Demo.ipynb)
 
-3. Analyze and create a labeled video using the exported model and desired resize parameters. This option functions similar to `deeplabcut.benchmark_videos` and `deeplabcut.create_labeled_video` (note, this is slow and only for testing purposes).
+**Benchmarking dataset and model:** Estimates of performance is carried out using a PyTorch ResNet50 model and an associated video recording (INSERT LINK).
+Code is in progress for running DLC Live using other models (currenly focusing on hr_net)
 
-##### python
-```python
-dlclive.benchmark_videos('/path/to/exported/model', '/path/to/video', resize=[1.0, 0.75, 0.5], pcutoff=0.5, display_radius=4, cmap='bmy', save_poses=True, save_video=True)
-```
-##### command line
-```
-dlc-live-benchmark /path/to/exported/model /path/to/video -r 0.5 --pcutoff 0.5 --display-radius 4 --cmap bmy --save-poses --save-video
-```
+**Performance:** Benchmarking results are available below.
 
-## License:
-
-This project is licensed under the GNU AGPLv3. Note that the software is provided "as is", without warranty of any kind, express or implied. If you use the code or data, we ask that you please cite us! This software is available for licensing via the EPFL Technology Transfer Office (https://tto.epfl.ch/, info.tto@epfl.ch).
-
-## Community Support, Developers, & Help:
-
-This is an actively developed package and we welcome community development and involvement.
-
-- If you want to contribute to the code, please read our guide [here](https://github.com/DeepLabCut/DeepLabCut/blob/master/CONTRIBUTING.md), which is provided at the main repository of DeepLabCut.
-
-- We are a community partner on the [![Image.sc forum](https://img.shields.io/badge/dynamic/json.svg?label=forum&amp;url=https%3A%2F%2Fforum.image.sc%2Ftags%2Fdeeplabcut.json&amp;query=%24.topic_list.tags.0.topic_count&amp;colorB=brightgreen&amp;&amp;suffix=%20topics&amp;logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABPklEQVR42m3SyyqFURTA8Y2BER0TDyExZ+aSPIKUlPIITFzKeQWXwhBlQrmFgUzMMFLKZeguBu5y+//17dP3nc5vuPdee6299gohUYYaDGOyyACq4JmQVoFujOMR77hNfOAGM+hBOQqB9TjHD36xhAa04RCuuXeKOvwHVWIKL9jCK2bRiV284QgL8MwEjAneeo9VNOEaBhzALGtoRy02cIcWhE34jj5YxgW+E5Z4iTPkMYpPLCNY3hdOYEfNbKYdmNngZ1jyEzw7h7AIb3fRTQ95OAZ6yQpGYHMMtOTgouktYwxuXsHgWLLl+4x++Kx1FJrjLTagA77bTPvYgw1rRqY56e+w7GNYsqX6JfPwi7aR+Y5SA+BXtKIRfkfJAYgj14tpOF6+I46c4/cAM3UhM3JxyKsxiOIhH0IO6SH/A1Kb1WBeUjbkAAAAAElFTkSuQmCC)](https://forum.image.sc/tags/deeplabcut). Please post help and support questions on the forum with the tag DeepLabCut. Check out their mission statement [Scientific Community Image Forum: A discussion forum for scientific image software](https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.3000340).
-
-- If you encounter a previously unreported bug/code issue, please post here (we encourage you to search issues first): https://github.com/DeepLabCut/DeepLabCut-live/issues
-
-- For quick discussions here: [![Gitter](https://badges.gitter.im/DeepLabCut/community.svg)](https://gitter.im/DeepLabCut/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-### Reference:
-
-If you utilize our tool, please [cite Kane et al, eLife 2020](https://elifesciences.org/articles/61909). The preprint is available here: https://www.biorxiv.org/content/10.1101/2020.08.04.236422v2
-
-```
-@Article{Kane2020dlclive,
-  author    = {Kane, Gary and Lopes, Gonçalo and Sanders, Jonny and Mathis, Alexander and Mathis, Mackenzie},
-  title     = {Real-time, low-latency closed-loop feedback using markerless posture tracking},
-  journal   = {eLife},
-  year      = {2020},
-}
-```
-
+| System | Model type | Runtime  | Device type | Precision                              | Video        | Video length (s) - # Frames | FPS | Frame size | Pose model backbone | Avg Inference time ± Std <br>*(including 1st inference)* | Avg Inference time ± Std | Average FPS ± Std | Model size |
+| ------ | ---------- | -------- | ----------- | -------------------------------------- | ------------ | --------------------------- | --- | ---------- | ------------------- | -------------------------------------------------------- | ------------------------ | ----------------- | ---------- |
+| Linux  | ONNX       | ONNX     | CUDA        | Full precision (FP32)                  | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 29.02ms ± 47.59ms                                        | 27.8ms ± 2.32ms          | 36 ± 3            | 92.12 MB   |
+| Linux  | ONNX       | ONNX     | CPU         | Full precision (FP32)                  | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 146.12ms ± 13.26ms                                       | 146.11 ± 13.25           | 7 ± 1             | 92.12 MB   |
+| Linux  | PyTorch    | PyTorch  | CUDA        | Full precision (FP32)                  | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 6.04ms ± 7.37ms                                          | 5.97ms ± 6.8ms           | 271 ± 112         | 96.5 MB    |
+| Linux  | PyTorch    | PyTorch  | CPU         | Full precision (FP32)                  | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 365.26ms ± 13.88ms                                       | 365.17ms ± 13.44ms       | 3 ± 0             | 96.5 MB    |
+| Linux  | ONNX       | TensorRT | CUDA        | Full precision (FP32) - no caching     | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 55.32ms ± 1254.16ms^                                     | 22.93ms ± 0.88           | 44 ± 2            | 92.12 MB   |
+| Linux  | ONNX       | TensorRT | CUDA        | Full precision (FP32) - engine caching | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 20.8ms ± 3.4ms                                           | 20.72ms ± 1.25ms         | 48 ± 3            | 92.12 MB   |
+| Linux  | ONNX       | TensorRT | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 34.37ms ± 858.96ms                                       | 12.19ms ± 0.87           | 82 ± 6            | 46.16 MB   |
+| Linux  | ONNX       | ONNX     | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 21.74ms ± 43.24ms                                        | 20.62ms ± 2.5ms          | 49 ± 5            | 46.16 MB   |
