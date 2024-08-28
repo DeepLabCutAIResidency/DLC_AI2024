@@ -15,45 +15,6 @@ from pip._internal.operations import freeze
 
 from dlclive import VERSION, DLCLive
 
-# def download_benchmarking_data(
-#     target_dir=".",
-#     url="http://deeplabcut.rowland.harvard.edu/datasets/dlclivebenchmark.tar.gz",
-# ):
-#     """
-#     Downloads a DeepLabCut-Live benchmarking Data (videos & DLC models).
-#     """
-#     import tarfile
-#     import urllib.request
-
-#     from tqdm import tqdm
-
-#     def show_progress(count, block_size, total_size):
-#         pbar.update(block_size)
-
-#     def tarfilenamecutting(tarf):
-#         """' auxfun to extract folder path
-#         ie. /xyz-trainsetxyshufflez/
-#         """
-#         for memberid, member in enumerate(tarf.getmembers()):
-#             if memberid == 0:
-#                 parent = str(member.path)
-#                 l = len(parent) + 1
-#             if member.path.startswith(parent):
-#                 member.path = member.path[l:]
-#                 yield member
-
-#     response = urllib.request.urlopen(url)
-#     print(
-#         "Downloading the benchmarking data from the DeepLabCut server @Harvard -> Go Crimson!!! {}....".format(
-#             url
-#         )
-#     )
-#     total_size = int(response.getheader("Content-Length"))
-#     pbar = tqdm(unit="B", total=total_size, position=0)
-#     filename, _ = urllib.request.urlretrieve(url, reporthook=show_progress)
-#     with tarfile.open(filename, mode="r:gz") as tar:
-#         tar.extractall(target_dir, members=tarfilenamecutting(tar))
-
 
 def get_system_info() -> dict:
     """Return summary info for system running benchmark.
@@ -123,7 +84,7 @@ def analyze_video(
     model_path: str,
     model_type: str,
     device: str,
-    precision:str = "FP32",
+    precision: str = "FP32",
     snapshot: str = None,
     display=True,
     pcutoff=0.5,
@@ -136,7 +97,7 @@ def analyze_video(
     draw_keypoint_names=False,
     cmap="bmy",
     get_sys_info=True,
-    save_video=False
+    save_video=False,
 ):
     """
     Analyze a video to track keypoints using an imported DeepLabCut model, visualize keypoints on the video, and optionally save the keypoint data and the labelled video.
@@ -179,7 +140,7 @@ def analyze_video(
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
         precision=precision,
-        snapshot=snapshot
+        snapshot=snapshot,
     )
 
     # Ensure save directory exists
@@ -276,7 +237,7 @@ def analyze_video(
 
             vwriter.write(image=frame)
         frame_index += 1
-    
+
     cap.release()
     if save_video:
         vwriter.release()
@@ -287,7 +248,7 @@ def analyze_video(
     if save_poses:
         save_poses_to_files(video_path, save_dir, bodyparts, poses)
 
-    return poses, times 
+    return poses, times
 
 
 def save_poses_to_files(video_path, save_dir, bodyparts, poses):
@@ -323,7 +284,11 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses):
         for entry in poses:
             frame_num = entry["frame"]
             pose = entry["pose"]["poses"][0][0]
-            row = [frame_num] + [item for kp in pose for item in kp]
+            row = [frame_num] + [
+                item.item() if isinstance(item, torch.Tensor) else item
+                for kp in pose
+                for item in kp
+            ]
             writer.writerow(row)
 
     # Save to HDF5
@@ -332,13 +297,34 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses):
         for i, bp in enumerate(bodyparts):
             hf.create_dataset(
                 name=f"{bp}_x",
-                data=[entry["pose"]["poses"][0][0][i, 0].item() for entry in poses],
+                data=[
+                    (
+                        entry["pose"]["poses"][0][0][i, 0].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 0], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 0]
+                    )
+                    for entry in poses
+                ],
             )
             hf.create_dataset(
                 name=f"{bp}_y",
-                data=[entry["pose"]["poses"][0][0][i, 1].item() for entry in poses],
+                data=[
+                    (
+                        entry["pose"]["poses"][0][0][i, 1].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 1], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 1]
+                    )
+                    for entry in poses
+                ],
             )
             hf.create_dataset(
                 name=f"{bp}_confidence",
-                data=[entry["pose"]["poses"][0][0][i, 2].item() for entry in poses],
+                data=[
+                    (
+                        entry["pose"]["poses"][0][0][i, 2].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 2], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 2]
+                    )
+                    for entry in poses
+                ],
             )
