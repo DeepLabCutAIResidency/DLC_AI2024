@@ -167,6 +167,9 @@ def analyze_video(
     # Ensure save directory exists
     os.makedirs(name=save_dir, exist_ok=True)
 
+    # Get the current date and time as a string
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+
     # Load video
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -192,7 +195,9 @@ def analyze_video(
 
         # Define output video path
         video_name = os.path.splitext(os.path.basename(video_path))[0]
-        output_video_path = os.path.join(save_dir, f"{video_name}_DLCLIVE_LABELLED.mp4")
+        output_video_path = os.path.join(
+            save_dir, f"{video_name}_DLCLIVE_LABELLED_{timestamp}.mp4"
+        )
 
         # Get video writer setup
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -266,12 +271,12 @@ def analyze_video(
         print(get_system_info())
 
     if save_poses:
-        save_poses_to_files(video_path, save_dir, bodyparts, poses)
+        save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp=timestamp)
 
     return poses, times
 
 
-def save_poses_to_files(video_path, save_dir, bodyparts, poses):
+def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
     """
     Saves the detected keypoint poses from the video to CSV and HDF5 files.
 
@@ -290,9 +295,10 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses):
     -------
     None
     """
+
     base_filename = os.path.splitext(os.path.basename(video_path))[0]
-    csv_save_path = os.path.join(save_dir, f"{base_filename}_poses.csv")
-    h5_save_path = os.path.join(save_dir, f"{base_filename}_poses.h5")
+    csv_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.csv")
+    h5_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.h5")
 
     # Save to CSV
     with open(csv_save_path, mode="w", newline="") as file:

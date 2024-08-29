@@ -169,6 +169,9 @@ def analyze_live_video(
     # Ensure save directory exists
     os.makedirs(name=save_dir, exist_ok=True)
 
+    # Get the current date and time as a string
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+
     # Load video
     cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
@@ -193,7 +196,7 @@ def analyze_live_video(
 
         # Define output video path
         output_video_path = os.path.join(
-            save_dir, f"{experiment_name}_DLCLIVE_LABELLED.mp4"
+            save_dir, f"{experiment_name}_DLCLIVE_LABELLED_{timestamp}.mp4"
         )
 
         # Get video writer setup
@@ -210,7 +213,6 @@ def analyze_live_video(
         )
 
     while True:
-        start_time = time.time()
 
         ret, frame = cap.read()
         if not ret:
@@ -218,21 +220,19 @@ def analyze_live_video(
 
         try:
             if frame_index == 0:
-                pose = dlc_live.init_inference(frame)  # load DLC model
+                pose, inf_time = dlc_live.init_inference(frame)  # load DLC model
             else:
-                pose = dlc_live.get_pose(frame)
+                pose, inf_time = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
             continue
 
-        end_time = time.time()
-        processing_time = end_time - start_time
-        print(f"Frame {frame_index} processing time: {processing_time:.4f} seconds")
-
         poses.append({"frame": frame_index, "pose": pose})
+        times.append(inf_time)
+
         if save_video:
             # Visualize keypoints
-            this_pose = pose[0]["poses"][0][0]
+            this_pose = pose["poses"][0][0]
             for j in range(this_pose.shape[0]):
                 if this_pose[j, 2] > pcutoff:
                     x, y = map(int, this_pose[j, :2])
@@ -277,12 +277,14 @@ def analyze_live_video(
         print(get_system_info())
 
     if save_poses:
-        save_poses_to_files(experiment_name, save_dir, bodyparts, poses)
+        save_poses_to_files(
+            experiment_name, save_dir, bodyparts, poses, timestamp=timestamp
+        )
 
     return poses, times
 
 
-def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
+def save_poses_to_files(experiment_name, save_dir, bodyparts, poses, timestamp):
     """
     Saves the detected keypoint poses from the video to CSV and HDF5 files.
 
@@ -302,8 +304,8 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
     None
     """
     base_filename = os.path.splitext(os.path.basename(experiment_name))[0]
-    csv_save_path = os.path.join(save_dir, f"{base_filename}_poses.csv")
-    h5_save_path = os.path.join(save_dir, f"{base_filename}_poses.h5")
+    csv_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.csv")
+    h5_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.h5")
 
     # Save to CSV
     with open(csv_save_path, mode="w", newline="") as file:
@@ -314,7 +316,7 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
         writer.writerow(header)
         for entry in poses:
             frame_num = entry["frame"]
-            pose_data = entry["pose"][0]["poses"][0][0]
+            pose_data = entry["pose"]["poses"][0][0]
             # Convert tensor data to numeric values
             row = [frame_num] + [
                 item.item() if isinstance(item, torch.Tensor) else item
@@ -331,11 +333,9 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
                 name=f"{bp}_x",
                 data=[
                     (
-                        entry["pose"][0]["poses"][0][0][i, 0].item()
-                        if isinstance(
-                            entry["pose"][0]["poses"][0][0][i, 0], torch.Tensor
-                        )
-                        else entry["pose"][0]["poses"][0][0][i, 0]
+                        entry["pose"]["poses"][0][0][i, 0].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 0], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 0]
                     )
                     for entry in poses
                 ],
@@ -344,11 +344,9 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
                 name=f"{bp}_y",
                 data=[
                     (
-                        entry["pose"][0]["poses"][0][0][i, 1].item()
-                        if isinstance(
-                            entry["pose"][0]["poses"][0][0][i, 1], torch.Tensor
-                        )
-                        else entry["pose"][0]["poses"][0][0][i, 1]
+                        entry["pose"]["poses"][0][0][i, 1].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 1], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 1]
                     )
                     for entry in poses
                 ],
@@ -357,11 +355,9 @@ def save_poses_to_files(experiment_name, save_dir, bodyparts, poses):
                 name=f"{bp}_confidence",
                 data=[
                     (
-                        entry["pose"][0]["poses"][0][0][i, 2].item()
-                        if isinstance(
-                            entry["pose"][0]["poses"][0][0][i, 2], torch.Tensor
-                        )
-                        else entry["pose"][0]["poses"][0][0][i, 2]
+                        entry["pose"]["poses"][0][0][i, 2].item()
+                        if isinstance(entry["pose"]["poses"][0][0][i, 2], torch.Tensor)
+                        else entry["pose"]["poses"][0][0][i, 2]
                     )
                     for entry in poses
                 ],
