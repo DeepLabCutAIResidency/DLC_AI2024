@@ -1,4 +1,3 @@
-TODO consider moving some of this infromation to the docs folder in the repo
 
 This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time applications that has minimal (software) dependencies. This new DLC Live pipeline can handle DLC models produced in PyTorch, as of DLC 3.0.
 
@@ -136,11 +135,12 @@ To remove the dependcy on base DLC for the subsequent sections, the code in dlcl
 
 - **Key Steps:**
   1. Load the necessary libraries.
-  2. Set up the working directory.
-  3. Choose a project from the options in the test suite.
-  4. Specifying a model by choosing the desired snapshot.
-  5. Export the model to ONNX format.
-  6. Generating an FP16 precision version of the exported model.
+  2. Download test suite.
+  3. Set up the working directory.
+  4. Choose a project from the options in the test suite.
+  5. Specifying a model by choosing the desired snapshot.
+  6. Export the model to ONNX format.
+  7. Generating an FP16 precision version of the exported model.
 
 #### 2. Single Frame Inference
 
@@ -252,7 +252,9 @@ Moreover, only the fly-kevin dataset has a .json file where we can tell which of
 
 
 **Files not currently in use / have not edited these since cloning the repo:** 
+
 dlclive folder:
+- pose.py
 - benchmark.py
 - Exceptions.py
 - Version.py
@@ -272,7 +274,6 @@ check install folder
 example processors folder
 
 Files to remove:
-- run_dlc-live.py
 - LiveVideoAnalysis.ipynb
 - DLCLive-Demo_draft.ipynb
 - DLCLive-Demo.ipynb
