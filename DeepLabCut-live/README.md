@@ -1,3 +1,5 @@
+TODO consider moving some of this infromation to the docs folder in the repo
+
 This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time applications that has minimal (software) dependencies. This new DLC Live pipeline can handle DLC models produced in PyTorch, as of DLC 3.0.
 
 In DLC Live TensorFlow, model export is handled in the main DLC package. 
@@ -199,3 +201,30 @@ This section guides you through the process of performing real-time pose estimat
 | Linux  | ONNX       | TensorRT | CUDA        | Full precision (FP32) - engine caching | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 20.8ms ± 3.4ms                                           | 20.72ms ± 1.25ms         | 48 ± 3            | 92.12 MB   |
 | Linux  | ONNX       | TensorRT | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 34.37ms ± 858.96ms                                       | 12.19ms ± 0.87           | 82 ± 6            | 46.16 MB   |
 | Linux  | ONNX       | ONNX     | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 21.74ms ± 43.24ms                                        | 20.62ms ± 2.5ms          | 49 ± 5            | 46.16 MB   |
+
+
+**Files not currently in use / have not edited these since cloning the repo:** 
+dlclive folder:
+- benchmark.py
+- Exceptions.py
+- Version.py
+- graph.py
+
+main folder:
+- poetry.lock
+- pyproject.toml
+- reinstall.sh
+
+docs folder:
+- install_desktop.md
+- install_jetson.md
+
+benchmarking folder
+check install folder
+example processors folder
+
+Files to remove:
+- run_dlc-live.py
+- LiveVideoAnalysis.ipynb
+- DLCLive-Demo_draft.ipynb
+- DLCLive-Demo.ipynb
