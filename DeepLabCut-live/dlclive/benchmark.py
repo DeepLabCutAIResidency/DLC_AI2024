@@ -193,7 +193,7 @@ def benchmark(
     n_frames : int, optional
         number of frames to run inference on, by default 1000
     print_rate : bool, optional
-        flat to print inference rate frame by frame, by default False
+        flag to print inference rate frame by frame, by default False
     display : bool, optional
         flag to display keypoints on images. Useful for checking the accuracy of exported models.
     pcutoff : float, optional
