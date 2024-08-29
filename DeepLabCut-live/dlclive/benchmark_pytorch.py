@@ -13,7 +13,8 @@ import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze
 
-from dlclive import VERSION, DLCLive
+from version import VERSION 
+from dlclive import DLCLive
 
 
 def get_system_info() -> dict:

@@ -15,12 +15,10 @@ from typing import Tuple
 import torch
 
 from deeplabcut.pose_estimation_pytorch.models.predictors.base import (
-    BasePredictor,
-    PREDICTORS,
+    BasePredictor
 )
 
 
-# @PREDICTORS.register_module
 class HeatmapPredictor(BasePredictor):
     """Predictor class for pose estimation from heatmaps (and optionally locrefs).
 
