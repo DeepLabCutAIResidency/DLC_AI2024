@@ -13,9 +13,7 @@ import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import deeplabcut as dlc
 import numpy as np
-import onnx
 import onnxruntime as ort
 import ruamel.yaml
 import torch
@@ -24,36 +22,10 @@ from deeplabcut.pose_estimation_pytorch.models import PoseModel
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.pose import (argmax_pose_predict, extract_cnn_output,
-                          multi_pose_predict)
 from dlclive.predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
-
-
-# TODO:
-# graph.py the main element to import TF model - convert to pytorch implementation
-# add pcutoffn to docstring
-
-# Q:     What is the best way to test the code as we go?
-# Q: if self.pose is not None: - ask Niels to go through this!
-
-# Q: what exactly does model_type reference?
-# Q: is precision a type of qunatization?
-# Q: for dynamic: First key points are predicted, then dynamic cropping is performed to 'single out' the animal, and then pose is estimated, we think. What is the difference from key point prediction to pose prediction?
-# Q: what is the processor? see processor code F12 from init file - what is the 'user defined process' - could it be that if mouse = standing, perform some action? or is the process the prediction of a certain pose/set of keypoints
-# Q: why have the convert2rgb function, is the stream coming from the camera different from the input needed to DLC live?
-# Q: what is the parameter 'cfg'?
-
-# What do these do?
-#        self.inputs = None
-#        self.outputs = None
-#        self.tflite_interpreter = None
-#        self.pose = None
-#        self.is_initialized = False
-#        self.sess = None
-
 
 class DLCLive(object):
     """
@@ -66,10 +38,10 @@ class DLCLive(object):
         Full path to exported model directory
 
     model_type: string, optional
-        which model to use: 'base', 'tensorrt' for tensorrt optimized graph, 'lite' for tensorflow lite optimized graph
+        which model to use: 'pytorch' or 'onnx' for exported snapshot
 
     precision : string, optional
-        precision of model weights, only for model_type='tensorrt'. Can be 'FP16' (default), 'FP32', or 'INT8'
+        precision of model weights, only for model_type='onnx'. Can be 'FP32' (default) or 'FP16'
 
     cropping : list of int
         cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the dynamic cropping of each frame to speed of processing, so instead of analyzing the whole frame, it analyses only the part of the frame where the animal is
@@ -196,7 +168,7 @@ class DLCLive(object):
         self,
     ) -> (
         dict
-    ):  # A: constructs a dictionary based on the object attributes based on the list of parameters
+    ):
         """
         Return
         Returns
@@ -218,8 +190,6 @@ class DLCLive(object):
         frame :class:`numpy.ndarray`
             processed frame: convert type, crop, convert color
         """
-
-        # ! NORMALISATION ??
 
         if self.cropping:
             frame = frame[
@@ -278,12 +248,7 @@ class DLCLive(object):
         elif self.model_type == "onnx":
             model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
             if self.precision == "FP16":
-                model_path = [
-                    model_paths[i]
-                    for i in range(len(model_paths))
-                    if "fp16" in model_paths[i]
-                ][0]
-                print(model_path)
+                model_path = [model_paths[i] for i in range(len(model_paths)) if "fp16" in model_paths[i]][0]
             else:
                 model_path = model_paths[0]
             opts = ort.SessionOptions()
@@ -292,23 +257,19 @@ class DLCLive(object):
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CUDAExecutionProvider"]
                 )
-                print(self.sess)
             elif self.device == "cpu":
                 self.sess = ort.InferenceSession(
                     model_path, opts, providers=["CPUExecutionProvider"]
                 )
-            # ! TODO implement if statements for choice of tensorrt engine options (precision, and caching)
-            elif self.device == "tensorrt":
-                provider = [
-                    (
-                        "TensorrtExecutionProvider",
-                        {
-                            "trt_engine_cache_enable": True,
-                            "trt_engine_cache_path": "./trt_engines",
-                        },
-                    )
-                ]
-                self.sess = ort.InferenceSession(model_path, opts, providers=provider)
+
+            elif self.device == "tensorrt": 
+                provider = [("TensorrtExecutionProvider", {
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": "./trt_engines"
+                })]
+                self.sess = ort.InferenceSession(
+                    model_path, opts, providers=provider
+                )
             self.predictor = HeatmapPredictor.build(self.cfg)
 
             if not os.path.isfile(model_path):
@@ -437,18 +398,7 @@ class DLCLive(object):
             self.pose["poses"][0][0][:, 1] += self.dynamic_cropping[2]
 
         # process the pose
-
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
 
         return self.pose, inf_time
-
-    # def close(self):
-    #     """ Close tensorflow session
-    #     """
-
-    #     self.sess.close()
-    #     self.sess = None
-    #     self.is_initialized = False
-    #     if self.display is not None:
-    #         self.display.destroy()
