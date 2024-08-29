@@ -169,11 +169,6 @@ class DLCLive(object):
     ) -> (
         dict
     ):
-        """
-        Return
-        Returns
-        -------
-        """
         return {param: getattr(self, param) for param in self.PARAMETERS}
 
     def process_frame(self, frame):
@@ -200,9 +195,7 @@ class DLCLive(object):
             if self.pose is not None:
                 detected = self.pose["poses"][0][0][:, 2] > self.dynamic[1]
 
-                # if np.any(detected.numpy()):
                 if torch.any(detected):
-                    # if detected.any():  # Use PyTorch's any() method
 
                     x = self.pose["poses"][0][0][detected, 0]
                     y = self.pose["poses"][0][0][detected, 1]
@@ -233,7 +226,7 @@ class DLCLive(object):
 
     def load_model(self):
         if self.model_type == "pytorch":
-            # Requires DLC 3.0 to be imported
+            # Requires DLC 3.0 to be imported !
             model_path = os.path.join(self.path, self.snapshot)
             if not os.path.isfile(model_path):
                 raise FileNotFoundError(
@@ -297,13 +290,15 @@ class DLCLive(object):
         --------
         pose :class:`numpy.ndarray`
             the pose estimated by DeepLabCut for the input image
+        inf_time:class: `float`
+            the pose inference time
         """
 
         # load model
         self.load_model()
-
-        inf_time = 0.0
-        # get pose of first frame (first inference is often very slow)
+        
+        inf_time = 0.
+        # get pose of first frame (first inference is very slow)
         if frame is not None:
             pose, inf_time = self.get_pose(frame, **kwargs)
         else:
@@ -324,8 +319,11 @@ class DLCLive(object):
         --------
         pose :class:`numpy.ndarray`
             the pose estimated by DeepLabCut for the input image
+        inf_time:class: `float`
+            the pose inference time
         """
-        inf_time = 0.0
+        
+        inf_time = 0.
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
