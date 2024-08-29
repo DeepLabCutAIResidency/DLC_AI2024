@@ -244,6 +244,7 @@ CUDA2 = Linux-5.14.0-1050-oem-x86_64-with-glibc2.35, NVIDIA TITAN RTX
 Thus there must be something off, which we have not been able to figure out on our own yet. The code is available in the branch metrics_dev
 
 ![alt text](metric_computation.gif)
+
 Moreover, only the fly-kevin dataset has a .json file where we can tell which of the labelled frames belong to test and train data, in order to not run the metrics on data belonging to the test set. Thus the code is currently applicable to the fly-kevin dataset. 
 
 **Command line usage:** We have tried to adapt the code be used both in the notebook and using command line. The benchmarking does work in command line, however the adaptations needed to run it in commandline prevented it to be used in the notebook. We have kept code to use benchmark_pytorch.py in command line the command_line_dev branch to not confound the notebook at the current time.
