@@ -21,11 +21,11 @@ import ruamel.yaml
 import torch
 from deeplabcut.pose_estimation_pytorch.models import PoseModel
 
-import utils
-from display import Display
-from exceptions import DLCLiveError, DLCLiveWarning
-from pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
-from predictor import HeatmapPredictor
+from dlclive import utils
+from dlclive.display import Display
+from dlclive.exceptions import DLCLiveError, DLCLiveWarning
+from dlclive.pose import argmax_pose_predict, extract_cnn_output, multi_pose_predict
+from dlclive.predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor

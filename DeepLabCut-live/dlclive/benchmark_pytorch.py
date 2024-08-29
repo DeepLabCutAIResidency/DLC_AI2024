@@ -13,7 +13,7 @@ import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze
 
-from version import VERSION 
+from dlclive.version import VERSION 
 from dlclive import DLCLive
 
 

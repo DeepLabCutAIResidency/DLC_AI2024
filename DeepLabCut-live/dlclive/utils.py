@@ -8,7 +8,7 @@ Licensed under GNU Lesser General Public License v3.0
 
 import numpy as np
 import warnings
-from exceptions import DLCLiveWarning
+from dlclive.exceptions import DLCLiveWarning
 
 try:
     import skimage
