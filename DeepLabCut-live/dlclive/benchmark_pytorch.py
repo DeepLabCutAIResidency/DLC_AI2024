@@ -208,7 +208,6 @@ def analyze_video(
         )
 
     while True:
-        start_time = time.time()
 
         ret, frame = cap.read()
         if not ret:
@@ -349,3 +348,136 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses):
                     for entry in poses
                 ],
             )
+
+
+import argparse
+import os
+
+
+def main():
+    """Provides a command line interface to analyze_video function."""
+
+    parser = argparse.ArgumentParser(
+        description="Analyze a video using a DeepLabCut model and visualize keypoints."
+    )
+    parser.add_argument("model_path", type=str, help="Path to the model.")
+    parser.add_argument("video_path", type=str, help="Path to the video file.")
+    parser.add_argument("model_type", type=str, help="Type of the model (e.g., 'DLC').")
+    parser.add_argument(
+        "device", type=str, help="Device to run the model on (e.g., 'cuda' or 'cpu')."
+    )
+    parser.add_argument(
+        "-p",
+        "--precision",
+        type=str,
+        default="FP32",
+        help="Model precision (e.g., 'FP32', 'FP16').",
+    )
+    parser.add_argument(
+        "-s",
+        "--snapshot",
+        type=str,
+        default=None,
+        help="Path to a specific model snapshot.",
+    )
+    parser.add_argument(
+        "-d", "--display", action="store_true", help="Display keypoints on the video."
+    )
+    parser.add_argument(
+        "-c",
+        "--pcutoff",
+        type=float,
+        default=0.5,
+        help="Probability cutoff for keypoints visualization.",
+    )
+    parser.add_argument(
+        "-dr",
+        "--display-radius",
+        type=int,
+        default=5,
+        help="Radius of keypoint circles in the display.",
+    )
+    parser.add_argument(
+        "-r",
+        "--resize",
+        type=int,
+        default=None,
+        help="Resize video frames to [width, height].",
+    )
+    parser.add_argument(
+        "-x",
+        "--cropping",
+        type=int,
+        nargs=4,
+        default=None,
+        help="Cropping parameters [x1, x2, y1, y2].",
+    )
+    parser.add_argument(
+        "-y",
+        "--dynamic",
+        type=float,
+        nargs=3,
+        default=[False, 0.5, 10],
+        help="Dynamic cropping [flag, pcutoff, margin].",
+    )
+    parser.add_argument(
+        "--save-poses", action="store_true", help="Save the keypoint poses to files."
+    )
+    parser.add_argument(
+        "--save-video",
+        action="store_true",
+        help="Save the output video with keypoints.",
+    )
+    parser.add_argument(
+        "--save-dir",
+        type=str,
+        default="model_predictions",
+        help="Directory to save output files.",
+    )
+    parser.add_argument(
+        "--draw-keypoint-names",
+        action="store_true",
+        help="Draw keypoint names on the video.",
+    )
+    parser.add_argument(
+        "--cmap", type=str, default="bmy", help="Colormap for keypoints visualization."
+    )
+    parser.add_argument(
+        "--no-sys-info",
+        action="store_false",
+        help="Do not print system info.",
+        dest="get_sys_info",
+    )
+
+    args = parser.parse_args()
+
+    # Call the analyze_video function with the parsed arguments
+    analyze_video(
+        video_path=args.video_path,
+        model_path=args.model_path,
+        model_type=args.model_type,
+        device=args.device,
+        precision=args.precision,
+        snapshot=args.snapshot,
+        display=args.display,
+        pcutoff=args.pcutoff,
+        display_radius=args.display_radius,
+        resize=tuple(args.resize) if args.resize else None,
+        cropping=args.cropping,
+        dynamic=tuple(args.dynamic),
+        save_poses=args.save_poses,
+        save_dir=args.save_dir,
+        draw_keypoint_names=args.draw_keypoint_names,
+        cmap=args.cmap,
+        get_sys_info=args.get_sys_info,
+        save_video=args.save_video,
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+
+# Example how to run in command line:
+# python benchmark_pytorch.py /path/to/model /path/to/video DLC cuda -p FP32 -d -c 0.5 -dr 5 -r 0.5 -x 10 630 10 470 --save-poses --save-video --draw-keypoint-names --cmap bmy --save-dir
+# python benchmark_pytorch.py /Users/annastuckert/Documents/DLC_AI_Residency/DLC_AI2024/DeepLabCut-live/dlc-live-dummy/ventral-gait/resnet.onnx /Users/annastuckert/Documents/DLC_AI_Residency/DLC_AI2024/DeepLabCut-live/dlc-live-dummy/ventral-gait/1_20cms_0degUP_first_1s.avi DLC cuda -p FP32 -d -r 0.5 --save-poses --save-video --draw-keypoint-names --cmap bmy --save-dir /Users/annastuckert/Documents/DLC_AI_Residency/DLC_AI2024/DeepLabCut-live/dlc-live-dummy/ventral-gait/out
