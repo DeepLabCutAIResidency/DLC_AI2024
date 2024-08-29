@@ -194,7 +194,7 @@ def analyze_live_video(
     ]
 
     if save_video:
-        
+
         # Define output video path
         output_video_path = os.path.join(
             save_dir, f"{experiment_name}_DLCLIVE_LABELLED_{timestamp}.mp4"
@@ -231,7 +231,6 @@ def analyze_live_video(
         poses.append({"frame": frame_index, "pose": pose})
         times.append(inf_time)
 
-        
         # Visualize keypoints
         this_pose = pose["poses"][0][0]
         for j in range(this_pose.shape[0]):
@@ -261,8 +260,8 @@ def analyze_live_video(
         frame_index += 1
 
         # Display the frame
-        # if display:
-        cv2.imshow("DLCLive", frame)
+        if display:
+            cv2.imshow("DLCLive", frame)
 
         # Add key press check for quitting
         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -272,7 +271,7 @@ def analyze_live_video(
 
     if save_video:
         vwriter.release()
-        
+
     cv2.destroyAllWindows()
 
     if get_sys_info:
