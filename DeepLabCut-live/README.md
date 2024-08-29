@@ -1,3 +1,5 @@
+TODO consider moving some of this infromation to the docs folder in the repo
+
 This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time applications that has minimal (software) dependencies. This new DLC Live pipeline can handle DLC models produced in PyTorch, as of DLC 3.0.
 
 In DLC Live TensorFlow, model export is handled in the main DLC package. 
@@ -12,7 +14,7 @@ For details on the `Processor` object in DLCLive TensorFlow, see documentation [
 ###### 🎥🎥🎥 Note :: alone, this object does not record video or capture images from a camera. This pipeline provides scripts to run video inference on a prerecorded video, as well as video inference on a live video feed.🎥🎥🎥
 
 
-### Quick Start: instructions for use:
+# Quick Start: instructions for use:
 
 To use DLCLive 3.0, two methods for doing so are provided. Besides using the provided scripts to open a camera feed (live or prerecorded), it is also possible to use the DLCLive object directly. 
 TODO: does the current version of DLCLive support this?
@@ -71,12 +73,10 @@ Both video inference on pre-recorded and live video feeds use the `DLCLive` as t
   - `display_radius` = int, default = 3; radius of the points on the video display
   - `display_cmap`= str, default = "bmy"; color scheme of the key points on the display
 
-
-#### Option 1: Video inference on pre-recorded videos
+## Video Analysis
+### Option 1: Video inference on pre-recorded videos
 
 TODO add __main__ element to script to use it in bash as well, not solely for iporting functions.
-
-TODO add function for making saving a video optional
 
 The benchmark_pytorch.py script provides the 'analyze_video' function for doing video inference and benchmark inference speed on a pre-recorded video.
 
@@ -98,13 +98,11 @@ analyze_video(model_path='/path/to/exported/model', video_path='/path/to/video',
 ```
 
 
-#### Option 2: Inference on live video feed
+### Option 2: Inference on live video feed
 
 
 TODO add __main__ element to script to use it in bash as well, not solely for iporting functions.
 
-
-TODO add function for making saving a video optional
 
 The LiveVideoInference.py script provides the 'analyze_live_video' function for doing live video tracking.
 
@@ -120,11 +118,76 @@ from dlclive.LiveVideoInference import analyze_live_video
 
 analyze_video(model_path='/path/to/exported/model', camera=0, experiment_name = "experiment_20240827", save_dir='/path/to/output', resize=0.5)
 ```
-**Demo Notebook:**
-this repository contains a notebook for demonstrating the functionalities of the DLCLive 3.0. This can be found in [DLCLive-Demo.ipynb](https://github.com/DeepLabCutAIResidency/DLC_AI2024/blob/main/DeepLabCut-live/DLCLive-Demo.ipynb)
 
-**Benchmarking dataset and model:** Estimates of performance is carried out using a PyTorch ResNet50 model and an associated video recording (INSERT LINK).
-Code is in progress for running DLC Live using other models (currenly focusing on hr_net)
+
+## Demo Notebook
+
+This repository contains a notebook for demonstrating the functionalities of the DLCLive 3.0. This can be found in [DLCLive-Demo.ipynb](https://github.com/DeepLabCutAIResidency/DLC_AI2024/blob/main/DeepLabCut-live/DLCLive-Demo.ipynb)
+
+The `DLCLive-Demo_final.ipynb` notebook provides a comprehensive guide to using DLCLive for offline as well as real-time pose estimation. This notebook is structured to help you understand how to apply DLCLive to different use cases, including single-frame inference, pre-recorded video inference, and live video inference.
+
+### Sections of the Notebook
+
+#### 1. Model Setup
+
+This section demonstrates how to set up your model export. The aim is to export an ONNX model that can be used in DLCLive 3.0, so the package will not be dependent on base DLC. Currently this section is dependent on functionalities from DLC. In the future, these components should be made part of base DLC perform model export to ONNX format.
+
+To remove the dependcy on base DLC for the subsequent sections, the code in dlclive.py for loading a pytorch model (compared to an ONNX model) would need to be removed as well, but for the time being remains a part of DLCLive 3.0.
+
+- **Key Steps:**
+  1. Load the necessary libraries.
+  2. Set up the working directory.
+  3. Choose a project from the options in the test suite.
+  4. Specifying a model by choosing the desired snapshot.
+  5. Export the model to ONNX format.
+  6. Generating an FP16 precision version of the exported model.
+
+#### 2. Single Frame Inference
+
+This section demonstrates how to perform pose estimation on a single image using a pre-trained DeepLabCut model.
+
+- **Key Steps:**
+  1. Load an image for testing.
+  2. Choose model type and device to run inference on.
+  3. Obtain model size.
+  4. Specify any resizing and cropping to be applied to inference, and whether to display the tracking as it occurs.
+  5. Specify the DLC live object to use for frame inference and perform inference to detect keypoints.
+
+#### 3. Pre-recorded Video Inference
+
+This section covers running pose estimation on a pre-recorded video file, and optionally saving the output with overlaid keypoints. This is intended for benchmarking purposes, and thus the section includes code for obtaining characteristics of the video to be benchmarked, an information on speed of inference.
+The code in benchmark_pytorch.py currently supports video inference on a single video. We have not tested running benchmarking on more than one video at a time.
+
+- **Key Steps:**
+  1. Set up video capture from a file.
+  2. Obtain characteristics of the video for benchmarking (fps, number of frames, videolength, size)
+  3. Specify whether to save a labelled video.
+  4. Analyze video.
+  5. Run benchmarking analysis
+
+#### 4. Live Video Inference
+
+This section guides you through the process of performing real-time pose estimation using a live video feed, such as from a webcam. 
+
+- **Key Steps:**
+  1. Using the current steps already initialized throughout the pipeline, the only thing to be changed is adding the camera to use (default is 0 for using the built-in webcam of a computer)
+  2. If you would prefer to use a different project or model, or change other elements, please go back to previous steps of the pipeline and make the necessary adjustments.
+
+
+## Model Architectures and Test Suite
+**Model Architectures Supported:** The pipeline has been developed using ResNet50 models (ventral-gait, hand-track, and fly-kevin datasets) and top-down ResNet50 with SSD lite detector (superbird_ssdlite). An hr_net is also available in the test data suite (superbird), but has not been tested yet. See details in test suite contents section.
+
+**Datasets in test suite:** The linked testing suite contains the following datasets, provided by DLC core development team, and Allodi Lab, University of St Andrews.
+
+`Test suite` **contents:**
+
+  - `ventral-gait` 🐭 model trained for analyzing mouse gait from ventral perspective on a treadmill in a model of ALS. Model is trained to detect 11 key points, used for quantifying gait parameters including speed, cadence, stride length, and acceleration. Folder contains single example image, snapshot.pt file and pytorch_config.yaml files from the PyTorch trained model, and example video(s). If considering using this model, please cite [this article](https://www.nature.com/articles/s41467-024-48925-7)
+   - `fly-kevin` 🪰 Model trained on drosophila. Further specification of the model to be obtained from the creator. Folder contains example images for single image inference, snapshot.pt file and pytorch_config.yaml files from the PyTorch trained model.
+   - `hand-track` 👋🏼 Dummy model trained on small dataset from single video of a hand wave recorded by Anna Stuckert. Inteded for testing live video inference. It is not a highly accurate model, but useful for live inference testing purposes. Folder contains snapshot.pt file and pytorch_config.yaml files from the PyTorch trained model. Note that this folder does not contain example images or videos, so using it inside the demo notebook you will have to go through the model loading and specification steps but without running single frame or offline video inference on it, but solely using it for live inference testing. TODO consider adding example video and frames in this. 
+  - `superbird_ssdlite` 🦅 superbird foundation model trained using the DLC's SuperAnimal feature, using data from a large number of labelled datasets on birds to create a foundation model for bird tracking. The trained model uses a top_down ResNet50 with SSDLite detector as the model architecture. The model is still under troubleshooting when Shaokai had to leave, as there was quite some jittering in the predictions of the keypoints. It seems the issue may be related to video_adaption not working, which at the timepoint appeared to be an issue that is already under investigation by Niels and is ongoing at the moment. Model in its current state is included in the testing suite, but may need further fine-tuning before it is the final model. The folder contains snapshot.pt (for keypoints) and snapshot-detector.pt (for top-down bounding box detection) files and pytorch_config.yaml files from the PyTorch trained model, and example video(s). When running with the model only, the snapshot.pt file is used, which automatically implements the detector.
+  - `superbird` 🐦‍⬛ likewise to superbird_ssdlite, but using the hr_netw32 architecture, provided by shaokai. Folder contains the exported ONNX file from the testing phase. We recieved the .pth file from Shaokai, but do not have the .pt file, so we have tried converting the file to ONNX, but have not had success so far. 
+
+**Benchmarking dataset and model:** Estimates of performance is carried out using a PyTorch ResNet50 model and an associated video recording. Benchmarking has not been carried out on other model architectures yet.
 
 **Performance:** Benchmarking results are available below.
 
@@ -138,3 +201,30 @@ Code is in progress for running DLC Live using other models (currenly focusing o
 | Linux  | ONNX       | TensorRT | CUDA        | Full precision (FP32) - engine caching | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 20.8ms ± 3.4ms                                           | 20.72ms ± 1.25ms         | 48 ± 3            | 92.12 MB   |
 | Linux  | ONNX       | TensorRT | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 34.37ms ± 858.96ms                                       | 12.19ms ± 0.87           | 82 ± 6            | 46.16 MB   |
 | Linux  | ONNX       | ONNX     | CUDA        | FP16                                   | Ventral gait | 10s - 1.5k                  | 150 | (658,302)  | `ResNet50` (bu)     | 21.74ms ± 43.24ms                                        | 20.62ms ± 2.5ms          | 49 ± 5            | 46.16 MB   |
+
+
+**Files not currently in use / have not edited these since cloning the repo:** 
+dlclive folder:
+- benchmark.py
+- Exceptions.py
+- Version.py
+- graph.py
+
+main folder:
+- poetry.lock
+- pyproject.toml
+- reinstall.sh
+
+docs folder:
+- install_desktop.md
+- install_jetson.md
+
+benchmarking folder
+check install folder
+example processors folder
+
+Files to remove:
+- run_dlc-live.py
+- LiveVideoAnalysis.ipynb
+- DLCLive-Demo_draft.ipynb
+- DLCLive-Demo.ipynb

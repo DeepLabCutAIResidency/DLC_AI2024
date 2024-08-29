@@ -13,8 +13,7 @@ import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze
 
-from dlclive import DLCLive
-from dlclive.version import VERSION
+from dlclive import VERSION, DLCLive
 
 
 def get_system_info() -> dict:
@@ -82,11 +81,12 @@ def get_system_info() -> dict:
     }
 
 
-def analyze_video(
-    video_path: str,
+def analyze_live_video(
     model_path: str,
     model_type: str,
     device: str,
+    camera: float = 0,
+    experiment_name: str = "Test",
     precision: str = "FP32",
     snapshot: str = None,
     display=True,
@@ -103,18 +103,20 @@ def analyze_video(
     save_video=False,
 ):
     """
-    Analyzes a video to track keypoints using a DeepLabCut model, and optionally saves the keypoint data and the labeled video.
+        Analyzes a video to track keypoints using a DeepLabCut model, and optionally saves the keypoint data and the labeled video.
 
     Parameters
     ----------
-    video_path : str
-        Path to the video file to be analyzed.
     model_path : str
         Path to the DeepLabCut model.
     model_type : str
         Type of the model (e.g., 'onnx').
     device : str
         Device to run the model on ('cpu' or 'cuda').
+    camera : float, default=0 (webcam)
+        The camera to record the live video from.
+    experiment_name : str, default = "Test"
+        Prefix to label generated pose and video files
     precision : str, optional, default='FP32'
         Precision type for the model ('FP32' or 'FP16').
     snapshot : str, optional
@@ -151,13 +153,12 @@ def analyze_video(
         - poses (list of dict): List of pose data for each frame.
         - times (list of float): List of inference times for each frame.
     """
-
     # Create the DLCLive object with cropping
     dlc_live = DLCLive(
         path=model_path,
         model_type=model_type,
         device=device,
-        display=display,
+        display=False,
         resize=resize,
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
@@ -172,32 +173,31 @@ def analyze_video(
     timestamp = time.strftime("%Y%m%d_%H%M%S")
 
     # Load video
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
-        print(f"Error: Could not open video file {video_path}")
+        print(f"Error: Could not open video file {camera}")
         return
 
     # Start empty dict to save poses to for each frame
     poses, times = [], []
-    # Create variable indicate current frame. Later in the code +1 is added to frame_index
     frame_index = 0
 
     # Retrieve bodypart names and number of keypoints
     bodyparts = dlc_live.cfg["metadata"]["bodyparts"]
     num_keypoints = len(bodyparts)
 
+    # Set colors and convert to RGB
+    cmap_colors = getattr(cc, cmap)
+    colors = [
+        ImageColor.getrgb(color)
+        for color in cmap_colors[:: int(len(cmap_colors) / num_keypoints)]
+    ]
+
     if save_video:
-        # Set colors and convert to RGB
-        cmap_colors = getattr(cc, cmap)
-        colors = [
-            ImageColor.getrgb(color)
-            for color in cmap_colors[:: int(len(cmap_colors) / num_keypoints)]
-        ]
 
         # Define output video path
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
         output_video_path = os.path.join(
-            save_dir, f"{video_name}_DLCLIVE_LABELLED_{timestamp}.mp4"
+            save_dir, f"{experiment_name}_DLCLIVE_LABELLED_{timestamp}.mp4"
         )
 
         # Get video writer setup
@@ -218,15 +218,11 @@ def analyze_video(
         ret, frame = cap.read()
         if not ret:
             break
-        # if frame_index == 0:
-        #     pose = dlc_live.init_inference(frame)  # load DLC model
+
         try:
-            # pose = dlc_live.get_pose(frame)
             if frame_index == 0:
-                # dlc_live.dynamic = (False, dynamic[1], dynamic[2]) # TODO trying to fix issues with dynamic cropping jumping back and forth between dyanmic cropped and original image
                 pose, inf_time = dlc_live.init_inference(frame)  # load DLC model
             else:
-                # dlc_live.dynamic = dynamic
                 pose, inf_time = dlc_live.get_pose(frame)
         except Exception as e:
             print(f"Error analyzing frame {frame_index}: {e}")
@@ -235,49 +231,61 @@ def analyze_video(
         poses.append({"frame": frame_index, "pose": pose})
         times.append(inf_time)
 
-        if save_video:
-            # Visualize keypoints
-            this_pose = pose["poses"][0][0]
-            for j in range(this_pose.shape[0]):
-                if this_pose[j, 2] > pcutoff:
-                    x, y = map(int, this_pose[j, :2])
-                    cv2.circle(
+        # Visualize keypoints
+        this_pose = pose["poses"][0][0]
+        for j in range(this_pose.shape[0]):
+            if this_pose[j, 2] > pcutoff:
+                x, y = map(int, this_pose[j, :2])
+                cv2.circle(
+                    frame,
+                    center=(x, y),
+                    radius=display_radius,
+                    color=colors[j],
+                    thickness=-1,
+                )
+
+                if draw_keypoint_names:
+                    cv2.putText(
                         frame,
-                        center=(x, y),
-                        radius=display_radius,
+                        text=bodyparts[j],
+                        org=(x + 10, y),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
                         color=colors[j],
-                        thickness=-1,
+                        thickness=1,
+                        lineType=cv2.LINE_AA,
                     )
-
-                    if draw_keypoint_names:
-                        cv2.putText(
-                            frame,
-                            text=bodyparts[j],
-                            org=(x + 10, y),
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            fontScale=0.5,
-                            color=colors[j],
-                            thickness=1,
-                            lineType=cv2.LINE_AA,
-                        )
-
+        if save_video:
             vwriter.write(image=frame)
         frame_index += 1
 
+        # Display the frame
+        if display:
+            cv2.imshow("DLCLive", frame)
+
+        # Add key press check for quitting
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
     cap.release()
+
     if save_video:
         vwriter.release()
+
+    cv2.destroyAllWindows()
 
     if get_sys_info:
         print(get_system_info())
 
     if save_poses:
-        save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp=timestamp)
+        save_poses_to_files(
+            experiment_name, save_dir, bodyparts, poses, timestamp=timestamp
+        )
 
     return poses, times
 
 
-def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
+def save_poses_to_files(experiment_name, save_dir, bodyparts, poses, timestamp):
     """
     Saves the detected keypoint poses from the video to CSV and HDF5 files.
 
@@ -296,8 +304,7 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
     -------
     None
     """
-
-    base_filename = os.path.splitext(os.path.basename(video_path))[0]
+    base_filename = os.path.splitext(os.path.basename(experiment_name))[0]
     csv_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.csv")
     h5_save_path = os.path.join(save_dir, f"{base_filename}_poses_{timestamp}.h5")
 
@@ -310,10 +317,11 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
         writer.writerow(header)
         for entry in poses:
             frame_num = entry["frame"]
-            pose = entry["pose"]["poses"][0][0]
+            pose_data = entry["pose"]["poses"][0][0]
+            # Convert tensor data to numeric values
             row = [frame_num] + [
                 item.item() if isinstance(item, torch.Tensor) else item
-                for kp in pose
+                for kp in pose_data
                 for item in kp
             ]
             writer.writerow(row)
@@ -355,131 +363,3 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
                     for entry in poses
                 ],
             )
-
-
-import argparse
-import os
-
-
-def main():
-    """Provides a command line interface to analyze_video function."""
-
-    parser = argparse.ArgumentParser(
-        description="Analyze a video using a DeepLabCut model and visualize keypoints."
-    )
-    parser.add_argument("model_path", type=str, help="Path to the model.")
-    parser.add_argument("video_path", type=str, help="Path to the video file.")
-    parser.add_argument("model_type", type=str, help="Type of the model (e.g., 'DLC').")
-    parser.add_argument(
-        "device", type=str, help="Device to run the model on (e.g., 'cuda' or 'cpu')."
-    )
-    parser.add_argument(
-        "-p",
-        "--precision",
-        type=str,
-        default="FP32",
-        help="Model precision (e.g., 'FP32', 'FP16').",
-    )
-    parser.add_argument(
-        "-s",
-        "--snapshot",
-        type=str,
-        default=None,
-        help="Path to a specific model snapshot.",
-    )
-    parser.add_argument(
-        "-d", "--display", action="store_true", help="Display keypoints on the video."
-    )
-    parser.add_argument(
-        "-c",
-        "--pcutoff",
-        type=float,
-        default=0.5,
-        help="Probability cutoff for keypoints visualization.",
-    )
-    parser.add_argument(
-        "-dr",
-        "--display-radius",
-        type=int,
-        default=5,
-        help="Radius of keypoint circles in the display.",
-    )
-    parser.add_argument(
-        "-r",
-        "--resize",
-        type=int,
-        default=None,
-        help="Resize video frames to [width, height].",
-    )
-    parser.add_argument(
-        "-x",
-        "--cropping",
-        type=int,
-        nargs=4,
-        default=None,
-        help="Cropping parameters [x1, x2, y1, y2].",
-    )
-    parser.add_argument(
-        "-y",
-        "--dynamic",
-        type=float,
-        nargs=3,
-        default=[False, 0.5, 10],
-        help="Dynamic cropping [flag, pcutoff, margin].",
-    )
-    parser.add_argument(
-        "--save-poses", action="store_true", help="Save the keypoint poses to files."
-    )
-    parser.add_argument(
-        "--save-video",
-        action="store_true",
-        help="Save the output video with keypoints.",
-    )
-    parser.add_argument(
-        "--save-dir",
-        type=str,
-        default="model_predictions",
-        help="Directory to save output files.",
-    )
-    parser.add_argument(
-        "--draw-keypoint-names",
-        action="store_true",
-        help="Draw keypoint names on the video.",
-    )
-    parser.add_argument(
-        "--cmap", type=str, default="bmy", help="Colormap for keypoints visualization."
-    )
-    parser.add_argument(
-        "--no-sys-info",
-        action="store_false",
-        help="Do not print system info.",
-        dest="get_sys_info",
-    )
-
-    args = parser.parse_args()
-
-    # Call the analyze_video function with the parsed arguments
-    analyze_video(
-        video_path=args.video_path,
-        model_path=args.model_path,
-        model_type=args.model_type,
-        device=args.device,
-        precision=args.precision,
-        snapshot=args.snapshot,
-        display=args.display,
-        pcutoff=args.pcutoff,
-        display_radius=args.display_radius,
-        resize=tuple(args.resize) if args.resize else None,
-        cropping=args.cropping,
-        dynamic=tuple(args.dynamic),
-        save_poses=args.save_poses,
-        save_dir=args.save_dir,
-        draw_keypoint_names=args.draw_keypoint_names,
-        cmap=args.cmap,
-        get_sys_info=args.get_sys_info,
-        save_video=args.save_video,
-    )
-
-
-if __name__ == "__main__":
-    main()
