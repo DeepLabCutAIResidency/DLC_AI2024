@@ -243,7 +243,7 @@ CUDA2 = Linux-5.14.0-1050-oem-x86_64-with-glibc2.35, NVIDIA TITAN RTX
 **Metrics for benchmarking:** We are have been working on implementing the metrics from dlc3 to run on the inferences from DLCLive 3.0. It seems as if the code is working, however the metrics are looking very poor (examples of RMSE ~220 and mAP < 1, despite the tracking looking good)
 Thus there must be something off, which we have not been able to figure out on our own yet. The code is available in the branch metrics_dev
 
-![alt text](metric_computation.gif)
+![alt text](./docs/assets/metric_computation.gif)
 
 Moreover, only the fly-kevin dataset has a .json file where we can tell which of the labelled frames belong to test and train data, in order to not run the metrics on data belonging to the test set. Thus the code is currently applicable to the fly-kevin dataset. 
 
