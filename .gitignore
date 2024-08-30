@@ -9,6 +9,9 @@ MNIST/
 
 # outputs & logs
 output/
+output_directory/
+live_output/
+model_predictions/
 *.csv
 *.mp4
 *.avi
