@@ -1,1 +1,1 @@
-from dlclive.predictor.single_predictor import HeatmapPredictor
+from predictor.single_predictor import HeatmapPredictor

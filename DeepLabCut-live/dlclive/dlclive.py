@@ -9,7 +9,6 @@ import glob
 import os
 import time
 import typing
-import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -19,10 +18,10 @@ import ruamel.yaml
 import torch
 from deeplabcut.pose_estimation_pytorch.models import PoseModel
 
-from dlclive import utils
-from dlclive.display import Display
-from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.predictor import HeatmapPredictor
+import utils
+from display import Display
+from exceptions import DLCLiveError, DLCLiveWarning
+from predictor import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor

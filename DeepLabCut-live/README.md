@@ -248,6 +248,9 @@ Thus there must be something off, which we have not been able to figure out on o
 Moreover, only the fly-kevin dataset has a .json file where we can tell which of the labelled frames belong to test and train data, in order to not run the metrics on data belonging to the test set. Thus the code is currently applicable to the fly-kevin dataset. 
 
 **Command line usage:** We have tried to adapt the code be used both in the notebook and using command line. The benchmarking does work in command line, however the adaptations needed to run it in commandline prevented it to be used in the notebook. We have kept code to use benchmark_pytorch.py in command line the command_line_dev branch to not confound the notebook at the current time.
+- Command line example for running `benchmark_pytorch.py`
+
+  `python DeepLabCut-live/dlclive/benchmark_pytorch.py path/to/folder/containing/model path/to/videop/to/be/analysed onnx cuda -d -r 0.3 --save-video --save-dir path/to/output/directory --draw-keypoint-names --no-sys-info`
 
 **Processor:** The processor element of DLCLive is not yet implemented in the DLCLive 3.0 code.
 

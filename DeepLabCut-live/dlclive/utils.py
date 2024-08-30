@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from dlclive.exceptions import DLCLiveWarning
+from exceptions import DLCLiveWarning
 
 try:
     import skimage

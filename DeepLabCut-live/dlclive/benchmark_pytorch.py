@@ -14,7 +14,7 @@ from PIL import ImageColor
 from pip._internal.operations import freeze
 
 from dlclive import DLCLive
-from dlclive.version import VERSION
+from version import VERSION
 
 
 def get_system_info() -> dict:
@@ -369,7 +369,7 @@ def main():
     )
     parser.add_argument("model_path", type=str, help="Path to the model.")
     parser.add_argument("video_path", type=str, help="Path to the video file.")
-    parser.add_argument("model_type", type=str, help="Type of the model (e.g., 'DLC').")
+    parser.add_argument("model_type", type=str, help="Type of the model (e.g., 'pytorch', 'onnx).")
     parser.add_argument(
         "device", type=str, help="Device to run the model on (e.g., 'cuda' or 'cpu')."
     )
@@ -407,7 +407,7 @@ def main():
     parser.add_argument(
         "-r",
         "--resize",
-        type=int,
+        type=float,
         default=None,
         help="Resize video frames to [width, height].",
     )
@@ -469,7 +469,7 @@ def main():
         display=args.display,
         pcutoff=args.pcutoff,
         display_radius=args.display_radius,
-        resize=tuple(args.resize) if args.resize else None,
+        resize=args.resize,
         cropping=args.cropping,
         dynamic=tuple(args.dynamic),
         save_poses=args.save_poses,
