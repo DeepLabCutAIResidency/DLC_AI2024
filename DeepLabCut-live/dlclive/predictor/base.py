@@ -13,9 +13,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import torch
-from deeplabcut.pose_estimation_pytorch.registry import (Registry,
-                                                         build_from_cfg)
 from torch import nn
+from deeplabcut.pose_estimation_pytorch.registry import (
+    Registry,
+    build_from_cfg,
+)
 
 PREDICTORS = Registry("predictors", build_func=build_from_cfg)
 
@@ -23,15 +25,16 @@ PREDICTORS = Registry("predictors", build_func=build_from_cfg)
 class BasePredictor(ABC, nn.Module):
     """The base Predictor class.
 
-    This class is an abstract base class (ABC) for defining predictors used in the DeepLabCut Toolbox.
-    All predictor classes should inherit from this base class and implement the forward method.
-    Regresses keypoint coordinates from a models output maps
+    This class is an abstract base class (ABC) for defining predictors used in the
+    DeepLabCut Toolbox. All predictor classes should inherit from this base class and
+    implement the forward method. Regresses keypoint coordinates from a models output
+    maps
 
     Attributes:
         num_animals: Number of animals in the project. Should be set in subclasses.
 
     Example:
-        # Create a subclass that inherits from BasePredictor and implements the forward method.
+        # Create a subclass that inherits from BasePredictor
         class MyPredictor(BasePredictor):
             def __init__(self, num_animals):
                 super().__init__()

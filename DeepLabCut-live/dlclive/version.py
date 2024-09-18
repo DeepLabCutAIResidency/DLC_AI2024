@@ -6,5 +6,5 @@ admin@deeplabcut.org
 Licensed under GNU Lesser General Public License v3.0
 """
 
-__version__ = "1.0.4"
+__version__ = "0.0.1"
 VERSION = __version__
