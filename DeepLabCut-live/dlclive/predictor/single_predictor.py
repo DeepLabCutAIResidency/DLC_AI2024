@@ -13,8 +13,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import torch
-from deeplabcut.pose_estimation_pytorch.models.predictors.base import \
-    BasePredictor
+from deeplabcut.pose_estimation_pytorch.models.predictors.base import BasePredictor
 
 
 class HeatmapPredictor(BasePredictor):

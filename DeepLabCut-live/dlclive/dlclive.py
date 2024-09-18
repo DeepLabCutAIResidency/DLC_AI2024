@@ -27,6 +27,7 @@ from dlclive.predictor import HeatmapPredictor
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
 
+
 class DLCLive(object):
     """
     Object that loads a DLC network and performs inference on single images (e.g. images captured from a camera feed)
@@ -166,9 +167,7 @@ class DLCLive(object):
     @property
     def parameterization(
         self,
-    ) -> (
-        dict
-    ):
+    ) -> dict:
         return {param: getattr(self, param) for param in self.PARAMETERS}
 
     def process_frame(self, frame):
@@ -241,7 +240,11 @@ class DLCLive(object):
         elif self.model_type == "onnx":
             model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
             if self.precision == "FP16":
-                model_path = [model_paths[i] for i in range(len(model_paths)) if "fp16" in model_paths[i]][0]
+                model_path = [
+                    model_paths[i]
+                    for i in range(len(model_paths))
+                    if "fp16" in model_paths[i]
+                ][0]
             else:
                 model_path = model_paths[0]
             opts = ort.SessionOptions()
@@ -255,14 +258,17 @@ class DLCLive(object):
                     model_path, opts, providers=["CPUExecutionProvider"]
                 )
 
-            elif self.device == "tensorrt": 
-                provider = [("TensorrtExecutionProvider", {
-                    "trt_engine_cache_enable": True,
-                    "trt_engine_cache_path": "./trt_engines"
-                })]
-                self.sess = ort.InferenceSession(
-                    model_path, opts, providers=provider
-                )
+            elif self.device == "tensorrt":
+                provider = [
+                    (
+                        "TensorrtExecutionProvider",
+                        {
+                            "trt_engine_cache_enable": True,
+                            "trt_engine_cache_path": "./trt_engines",
+                        },
+                    )
+                ]
+                self.sess = ort.InferenceSession(model_path, opts, providers=provider)
             self.predictor = HeatmapPredictor.build(self.cfg)
 
             if not os.path.isfile(model_path):
@@ -296,8 +302,8 @@ class DLCLive(object):
 
         # load model
         self.load_model()
-        
-        inf_time = 0.
+
+        inf_time = 0.0
         # get pose of first frame (first inference is very slow)
         if frame is not None:
             pose, inf_time = self.get_pose(frame, **kwargs)
@@ -322,8 +328,8 @@ class DLCLive(object):
         inf_time:class: `float`
             the pose inference time
         """
-        
-        inf_time = 0.
+
+        inf_time = 0.0
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
