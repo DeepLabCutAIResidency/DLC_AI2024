@@ -1,1 +1,0 @@
-from dlclive.predictor.single_predictor import HeatmapPredictor

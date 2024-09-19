@@ -6,7 +6,6 @@ Licensed under GNU Lesser General Public License v3.0
 """
 
 import csv
-import os
 import platform
 import subprocess
 import sys
@@ -15,7 +14,6 @@ import time
 import colorcet as cc
 import cv2
 import h5py
-import numpy as np
 import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze

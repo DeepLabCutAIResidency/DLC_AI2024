@@ -9,7 +9,6 @@ import glob
 import os
 import time
 import typing
-import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -17,12 +16,12 @@ import numpy as np
 import onnxruntime as ort
 import ruamel.yaml
 import torch
-from deeplabcut.pose_estimation_pytorch.models import PoseModel
+# from deeplabcut.pose_estimation_pytorch.models import PoseModel
 
 from dlclive import utils
 from dlclive.display import Display
-from dlclive.exceptions import DLCLiveError, DLCLiveWarning
-from dlclive.predictor import HeatmapPredictor
+from dlclive.exceptions import DLCLiveError
+from dlclive.models.predictors import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
@@ -225,17 +224,18 @@ class DLCLive(object):
 
     def load_model(self):
         if self.model_type == "pytorch":
-            # Requires DLC 3.0 to be imported !
-            model_path = os.path.join(self.path, self.snapshot)
-            if not os.path.isfile(model_path):
-                raise FileNotFoundError(
-                    "The model file {} does not exist.".format(model_path)
-                )
-            weights = torch.load(model_path, map_location=torch.device(self.device))
-            self.pose_model = PoseModel.build(self.cfg["model"])
-            self.pose_model.load_state_dict(weights["model"])
-            self.pose_model = self.pose_model.to(self.device)
-            self.pose_model.eval()
+            # # Requires DLC 3.0 to be imported !
+            # model_path = os.path.join(self.path, self.snapshot)
+            # if not os.path.isfile(model_path):
+            #     raise FileNotFoundError(
+            #         "The model file {} does not exist.".format(model_path)
+            #     )
+            # weights = torch.load(model_path, map_location=torch.device(self.device))
+            # self.pose_model = PoseModel.build(self.cfg["model"])
+            # self.pose_model.load_state_dict(weights["model"])
+            # self.pose_model = self.pose_model.to(self.device)
+            # self.pose_model.eval()
+            raise ValueError(f"NOPE lol {self.model_type}")
 
         elif self.model_type == "onnx":
             model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
@@ -336,11 +336,10 @@ class DLCLive(object):
         if frame is not None:
             if frame.ndim >= 2:
                 self.convert2rgb = True
-
             processed_frame = self.process_frame(frame)
 
         if self.model_type == "pytorch":
-            frame = torch.Tensor(processed_frame)
+            frame = torch.tensor(processed_frame)
             frame = frame.permute(2, 0, 1).unsqueeze(0)
             frame = frame.to(self.device)
 
@@ -361,8 +360,8 @@ class DLCLive(object):
 
             frame = np.transpose(frame, (2, 0, 1))
             frame = np.expand_dims(frame, axis=0)
-
-            ort_inputs = {self.sess.get_inputs()[0].name: frame}
+            ort_input_names = self.sess.get_inputs()
+            ort_inputs = {ort_input_names[0].name: frame}
 
             start = time.time()
             outputs = self.sess.run(None, ort_inputs)
@@ -370,8 +369,8 @@ class DLCLive(object):
             inf_time = end - start
 
             outputs = {
-                "heatmap": torch.Tensor(outputs[0]),
-                "locref": torch.Tensor(outputs[1]),
+                "heatmap": torch.tensor(outputs[0]),
+                "locref": torch.tensor(outputs[1]),
             }
 
             self.pose = self.predictor(outputs=outputs)

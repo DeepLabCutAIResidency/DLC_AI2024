@@ -1,21 +1,22 @@
-#
-# DeepLabCut Toolbox (deeplabcut.org)
-# © A. & M.W. Mathis Labs
-# https://github.com/DeepLabCut/DeepLabCut
-#
-# Please see AUTHORS for contributors.
-# https://github.com/DeepLabCut/DeepLabCut/blob/main/AUTHORS
-#
-# Licensed under GNU Lesser General Public License v3.0
-#
+"""
+DeepLabCut Toolbox (deeplabcut.org)
+© A. & M. Mathis Labs
+
+Licensed under GNU Lesser General Public License v3.0
+"""
 from __future__ import annotations
 
 from typing import Tuple
 
 import torch
-from deeplabcut.pose_estimation_pytorch.models.predictors.base import BasePredictor
+
+from dlclive.models.predictors.base import (
+    BasePredictor,
+    PREDICTORS,
+)
 
 
+@PREDICTORS.register_module
 class HeatmapPredictor(BasePredictor):
     """Predictor class for pose estimation from heatmaps (and optionally locrefs).
 
