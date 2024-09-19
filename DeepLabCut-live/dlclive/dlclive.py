@@ -16,7 +16,7 @@ import numpy as np
 import onnxruntime as ort
 import ruamel.yaml
 import torch
-# from deeplabcut.pose_estimation_pytorch.models import PoseModel
+from dlclive.models import PoseModel
 
 from dlclive import utils
 from dlclive.display import Display
@@ -27,9 +27,10 @@ if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
 
 
-class DLCLive(object):
+class DLCLive:
     """
-    Object that loads a DLC network and performs inference on single images (e.g. images captured from a camera feed)
+    Object that loads a DLC network and performs inference on single images (e.g.
+    images captured from a camera feed)
 
     Parameters
     -----------
@@ -41,36 +42,52 @@ class DLCLive(object):
         which model to use: 'pytorch' or 'onnx' for exported snapshot
 
     precision : string, optional
-        precision of model weights, only for model_type='onnx'. Can be 'FP32' (default) or 'FP16'
+        precision of model weights, only for model_type='onnx'. Can be 'FP32' (default)
+        or 'FP16'
 
     cropping : list of int
-        cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the dynamic cropping of each frame to speed of processing, so instead of analyzing the whole frame, it analyses only the part of the frame where the animal is
+        cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the
+        dynamic cropping of each frame to speed of processing, so instead of analyzing
+        the whole frame, it analyses only the part of the frame where the animal is
 
-    dynamic: triple containing (state, detectiontreshold, margin) #A: margin adds some space so the 'bbox' isn't too narrow around the animal'. First key points are predicted, then dynamic cropping is performed to 'single out' the animal, and then pose is estimated, we think.
-        If the state is true, then dynamic cropping will be performed. That means that if an object is detected (i.e. any body part > detectiontreshold),
-        then object boundaries are computed according to the smallest/largest x position and smallest/largest y position of all body parts. This  window is
-        expanded by the margin and from then on only the posture within this crop is analyzed (until the object is lost, i.e. <detectiontreshold). The
-        current position is utilized for updating the crop window for the next frame (this is why the margin is important and should be set large
-        enough given the movement of the animal).
+    dynamic: triple containing (state, detectiontreshold, margin) #A: margin adds some
+        space so the 'bbox' isn't too narrow around the animal'. First key points are
+        predicted, then dynamic cropping is performed to 'single out' the animal, and
+        then pose is estimated, we think.
+        If the state is true, then dynamic cropping will be performed. That means that
+        if an object is detected (i.e. any body part > detectiontreshold), then object
+        boundaries are computed according to the smallest/largest x position and
+        smallest/largest y position of all body parts. This  window is expanded by the
+        margin and from then on only the posture within this crop is analyzed (until the
+        object is lost, i.e. <detectiontreshold). The current position is utilized for
+        updating the crop window for the next frame (this is why the margin is important
+        and should be set large enough given the movement of the animal).
 
     resize : float, optional
         Factor to resize the image.
-        For example, resize=0.5 will downsize both the height and width of the image by a factor of 2.
+        For example, resize=0.5 will downsize both the height and width of the image by
+        a factor of 2.
 
-    processor: dlc pose processor object, optional #A: this is possibly the 'predictor' - or is it what enables use on jetson boards?
+    processor: dlc pose processor object, optional #A: this is possibly the 'predictor'
+        - or is it what enables use on jetson boards?
         User-defined processor object. Must contain two methods: process and save.
-        The 'process' method takes in a pose, performs some processing, and returns processed pose.
+        The 'process' method takes in a pose, performs some processing, and returns
+        processed pose.
         The 'save' method saves any valuable data created by or used by the processor
         Processors can be used for two main purposes:
-        i) to run a forward predicting model that will predict the future pose from past history of poses (history can be stored in the processor object, but is not stored in this DLCLive object)
-        ii) to trigger external hardware based on pose estimation (e.g. see 'TeensyLaser' processor)
+            i) to run a forward predicting model that will predict the future pose from
+            past history of poses (history can be stored in the processor object, but is
+            not stored in this DLCLive object)
+            ii) to trigger external hardware based on pose estimation (e.g. see
+            'TeensyLaser' processor)
 
     convert2rgb : bool, optional
         boolean flag to convert frames from BGR to RGB color scheme
 
     display : bool, optional
         Display frames with DeepLabCut labels?
-        This is useful for testing model accuracy and cropping parameters, but it is very slow.
+        This is useful for testing model accuracy and cropping parameters, but it is
+        very slow.
 
     display_lik : float, optional
         Likelihood threshold for display
@@ -137,11 +154,13 @@ class DLCLive(object):
 
         if self.model_type == "pytorch" and (self.snapshot) is None:
             raise DLCLiveError(
-                f"The selected model type is '{self.model_type}', but no snapshot was provided"
+                f"The selected model type is '{self.model_type}', but no snapshot was "
+                f"provided"
             )
         if self.model_type == "pytorch" and (self.device) == "tensorrt":
             raise DLCLiveError(
-                f"The selected model type is '{self.model_type}' is not enabled by the selected runtime {self.device}"
+                f"The selected model type is '{self.model_type}' is not enabled by the "
+                f"selected runtime {self.device}"
             )
         self.read_config()
 
@@ -157,7 +176,8 @@ class DLCLive(object):
         cfg_path = Path(self.path).resolve() / "pytorch_config.yaml"
         if not cfg_path.exists():
             raise FileNotFoundError(
-                f"The pose configuration file for the exported model at {str(cfg_path)} was not found. Please check the path to the exported model directory"
+                f"The pose configuration file for the exported model at {str(cfg_path)}"
+                " was not found. Please check the path to the exported model directory"
             )
 
         ruamel_file = ruamel.yaml.YAML()
@@ -224,17 +244,16 @@ class DLCLive(object):
 
     def load_model(self):
         if self.model_type == "pytorch":
-            # # Requires DLC 3.0 to be imported !
-            # model_path = os.path.join(self.path, self.snapshot)
-            # if not os.path.isfile(model_path):
-            #     raise FileNotFoundError(
-            #         "The model file {} does not exist.".format(model_path)
-            #     )
-            # weights = torch.load(model_path, map_location=torch.device(self.device))
-            # self.pose_model = PoseModel.build(self.cfg["model"])
-            # self.pose_model.load_state_dict(weights["model"])
-            # self.pose_model = self.pose_model.to(self.device)
-            # self.pose_model.eval()
+            model_path = os.path.join(self.path, self.snapshot)
+            if not os.path.isfile(model_path):
+                raise FileNotFoundError(
+                    "The model file {} does not exist.".format(model_path)
+                )
+            weights = torch.load(model_path, map_location=torch.device(self.device))
+            self.pose_model = PoseModel.build(self.cfg["model"])
+            self.pose_model.load_state_dict(weights["model"])
+            self.pose_model = self.pose_model.to(self.device)
+            self.pose_model.eval()
             raise ValueError(f"NOPE lol {self.model_type}")
 
         elif self.model_type == "onnx":
@@ -278,14 +297,14 @@ class DLCLive(object):
 
         else:
             raise DLCLiveError(
-                "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
-                    self.model_type
-                )
+                f"model_type = {self.model_type} is not supported. model_type must be "
+                "'pytorch' or 'onnx'"
             )
 
     def init_inference(self, frame=None, **kwargs):
         """
-        Load model and perform inference on first frame -- the first inference is usually very slow.
+        Load model and perform inference on first frame -- the first inference is
+        usually very slow.
 
         Parameters
         -----------
@@ -377,18 +396,15 @@ class DLCLive(object):
 
         else:
             raise DLCLiveError(
-                "model_type = {} is not supported. model_type must be 'pytorch' or 'onnx'".format(
-                    self.model_type
-                )
+                f"model_type = {self.model_type} is not supported. model_type must be "
+                "'pytorch' or 'onnx'"
             )
 
         # display image if display=True before correcting pose for cropping/resizing
-
         if self.display is not None:
             self.display.display_frame(processed_frame, self.pose)
 
         # if frame is cropped, convert pose coordinates to original frame coordinates
-
         if self.resize is not None:
             self.pose["poses"][0][0][:, :2] *= 1 / self.resize
 
