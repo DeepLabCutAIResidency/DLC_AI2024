@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 import torchvision.ops as ops
 
-from deeplabcut.pose_estimation_pytorch.registry import build_from_cfg, Registry
+from dlclive.models.registry import Registry, build_from_cfg
 
 BLOCKS = Registry("blocks", build_func=build_from_cfg)
 

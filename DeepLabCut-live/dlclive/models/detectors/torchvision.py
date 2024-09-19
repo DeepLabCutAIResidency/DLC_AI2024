@@ -14,9 +14,7 @@ from __future__ import annotations
 import torch
 import torchvision.models.detection as detection
 
-from deeplabcut.pose_estimation_pytorch.models.detectors.base import (
-    BaseDetector,
-)
+from dlclive.models.detectors.base import BaseDetector
 
 
 class TorchvisionDetectorAdaptor(BaseDetector):

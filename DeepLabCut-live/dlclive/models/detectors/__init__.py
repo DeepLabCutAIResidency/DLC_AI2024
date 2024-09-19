@@ -8,9 +8,6 @@
 #
 # Licensed under GNU Lesser General Public License v3.0
 #
-from deeplabcut.pose_estimation_pytorch.models.detectors.base import (
-    DETECTORS,
-    BaseDetector,
-)
-from deeplabcut.pose_estimation_pytorch.models.detectors.fasterRCNN import FasterRCNN
-from deeplabcut.pose_estimation_pytorch.models.detectors.ssd import SSDLite
+from dlclive.models.detectors.base import DETECTORS, BaseDetector
+from dlclive.models.detectors.fasterRCNN import FasterRCNN
+from dlclive.models.detectors.ssd import SSDLite

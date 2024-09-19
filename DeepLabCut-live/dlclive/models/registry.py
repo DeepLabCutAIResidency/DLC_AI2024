@@ -4,6 +4,7 @@ DeepLabCut Toolbox (deeplabcut.org)
 
 Licensed under GNU Lesser General Public License v3.0
 """
+
 import inspect
 from functools import partial
 from typing import Any, Dict, Optional
@@ -25,7 +26,7 @@ def build_from_cfg(
         Any: The constructed object.
 
     Example:
-        >>> from deeplabcut.pose_estimation_pytorch.registry import Registry, build_from_cfg
+        >>> from dlclive.models.registry import Registry, build_from_cfg
         >>> class Model:
         >>>     def __init__(self, param):
         >>>         self.param = param
@@ -165,7 +166,7 @@ class Registry:
             class: The corresponding class.
 
         Example:
-            >>> from deeplabcut.pose_estimation_pytorch.registry import Registry
+            >>> from dlclive.models.registry import Registry
             >>> registry = Registry("models")
             >>> class Model:
             >>>     pass
@@ -199,7 +200,7 @@ class Registry:
             Any: The constructed object.
 
         Example:
-            >>> from deeplabcut.pose_estimation_pytorch.registry import Registry, build_from_cfg
+            >>> from dlclive.models.registry import Registry, build_from_cfg
             >>> class Model:
             >>>     def __init__(self, param):
             >>>         self.param = param
@@ -222,7 +223,7 @@ class Registry:
             None
 
         Example:
-            >>> from deeplabcut.pose_estimation_pytorch.registry import Registry
+            >>> from dlclive.models.registry import Registry
             >>> models = Registry('models')
             >>> mmdet_models = Registry('models', parent=models)
             >>> class Model:
@@ -252,7 +253,7 @@ class Registry:
             None
 
         Example:
-            >>> from deeplabcut.pose_estimation_pytorch.registry import Registry
+            >>> from dlclive.models.registry import Registry
             >>> registry = Registry("models")
             >>> class Model:
             >>>     pass
@@ -285,7 +286,7 @@ class Registry:
             type: The input class.
 
         Example:
-            >>> from deeplabcut.pose_estimation_pytorch.registry import Registry
+            >>> from dlclive.models.registry import Registry
             >>> registry = Registry("models")
             >>> @registry.deprecated_register_module()
             >>> class Model:

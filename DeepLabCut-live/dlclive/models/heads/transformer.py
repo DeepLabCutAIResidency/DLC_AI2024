@@ -15,10 +15,8 @@ from einops import rearrange
 from timm.layers import trunc_normal_
 from torch import nn as nn
 
-from deeplabcut.pose_estimation_pytorch.models.criterions import BaseCriterion
-from deeplabcut.pose_estimation_pytorch.models.heads import BaseHead, HEADS
-from deeplabcut.pose_estimation_pytorch.models.predictors import BasePredictor
-from deeplabcut.pose_estimation_pytorch.models.target_generators import BaseGenerator
+from dlclive.models.heads import HEADS, BaseHead
+from dlclive.models.predictors import BasePredictor
 
 
 @HEADS.register_module
@@ -30,8 +28,6 @@ class TransformerHead(BaseHead):
     def __init__(
         self,
         predictor: BasePredictor,
-        target_generator: BaseGenerator,
-        criterion: BaseCriterion,
         dim: int,
         hidden_heatmap_dim: int,
         heatmap_dim: int,
@@ -59,7 +55,7 @@ class TransformerHead(BaseHead):
                     (C, H * head_stride, W * head_stride)    if head_stride > 0
                     (C, -H/head_stride, -W/head_stride)      if head_stride < 0
         """
-        super().__init__(head_stride, predictor, target_generator, criterion)
+        super().__init__(head_stride, predictor)
         self.mlp_head = (
             nn.Sequential(
                 nn.LayerNorm(dim * 3),

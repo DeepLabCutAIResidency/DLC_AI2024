@@ -13,18 +13,9 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from deeplabcut.pose_estimation_pytorch.models.criterions import (
-    BaseCriterion,
-    BaseLossAggregator,
-)
-from deeplabcut.pose_estimation_pytorch.models.heads.base import HEADS
-from deeplabcut.pose_estimation_pytorch.models.heads.simple_head import (
-    DeconvModule,
-    HeatmapHead,
-)
-from deeplabcut.pose_estimation_pytorch.models.predictors import BasePredictor
-from deeplabcut.pose_estimation_pytorch.models.target_generators import BaseGenerator
-from deeplabcut.pose_estimation_pytorch.models.weight_init import BaseWeightInitializer
+from dlclive.models.heads.base import HEADS
+from dlclive.models.heads.simple_head import DeconvModule, HeatmapHead
+from dlclive.models.predictors import BasePredictor
 
 
 @HEADS.register_module
@@ -34,15 +25,11 @@ class DLCRNetHead(HeatmapHead):
     def __init__(
         self,
         predictor: BasePredictor,
-        target_generator: BaseGenerator,
-        criterion: dict[str, BaseCriterion],
-        aggregator: BaseLossAggregator,
         heatmap_config: dict,
         locref_config: dict,
         paf_config: dict,
         num_stages: int = 5,
         features_dim: int = 128,
-        weight_init: str | dict | BaseWeightInitializer | None = None,
     ) -> None:
         self.num_stages = num_stages
         # FIXME Cleaner __init__ to avoid initializing unused layers
@@ -56,15 +43,7 @@ class DLCRNetHead(HeatmapHead):
             )
             locref_config["channels"][0] = locref_config["channels"][-1]
 
-        super().__init__(
-            predictor,
-            target_generator,
-            criterion,
-            aggregator,
-            heatmap_config,
-            locref_config,
-            weight_init,
-        )
+        super().__init__(predictor, heatmap_config, locref_config)
         if num_stages > 0:
             self.stride *= 2  # extra deconv layer where it's multi-stage
 

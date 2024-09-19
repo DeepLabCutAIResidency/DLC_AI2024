@@ -14,7 +14,7 @@ from typing import List
 
 import torch.nn as nn
 
-from deeplabcut.pose_estimation_pytorch.models.modules import BasicBlock
+from dlclive.models.modules import BasicBlock
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)

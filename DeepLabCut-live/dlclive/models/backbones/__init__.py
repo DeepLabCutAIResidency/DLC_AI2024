@@ -8,9 +8,6 @@
 #
 # Licensed under GNU Lesser General Public License v3.0
 #
-from dlclive.models.backbones.base import (
-    BACKBONES,
-    BaseBackbone,
-)
+from dlclive.models.backbones.base import BACKBONES, BaseBackbone
 from dlclive.models.backbones.hrnet import HRNet
-from dlclive.models.backbones.resnet import ResNet, DLCRNet
+from dlclive.models.backbones.resnet import DLCRNet, ResNet

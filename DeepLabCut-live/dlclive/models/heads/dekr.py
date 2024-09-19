@@ -13,19 +13,9 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from deeplabcut.pose_estimation_pytorch.models.criterions import (
-    BaseCriterion,
-    BaseLossAggregator,
-)
-from deeplabcut.pose_estimation_pytorch.models.heads.base import BaseHead, HEADS
-from deeplabcut.pose_estimation_pytorch.models.modules.conv_block import (
-    AdaptBlock,
-    BaseBlock,
-    BasicBlock,
-)
-from deeplabcut.pose_estimation_pytorch.models.predictors import BasePredictor
-from deeplabcut.pose_estimation_pytorch.models.target_generators import BaseGenerator
-from deeplabcut.pose_estimation_pytorch.models.weight_init import BaseWeightInitializer
+from dlclive.models.heads.base import HEADS, BaseHead
+from dlclive.models.modules.conv_block import AdaptBlock, BaseBlock, BasicBlock
+from dlclive.models.predictors import BasePredictor
 
 
 @HEADS.register_module
@@ -41,17 +31,11 @@ class DEKRHead(BaseHead):
     def __init__(
         self,
         predictor: BasePredictor,
-        target_generator: BaseGenerator,
-        criterion: dict[str, BaseCriterion],
-        aggregator: BaseLossAggregator,
         heatmap_config: dict,
         offset_config: dict,
-        weight_init: str | dict | BaseWeightInitializer | None = "dekr",
         stride: int | float = 1,  # head stride - should always be 1 for DEKR
     ) -> None:
-        super().__init__(
-            stride, predictor, target_generator, criterion, aggregator, weight_init
-        )
+        super().__init__(stride, predictor)
         self.heatmap_head = DEKRHeatmap(**heatmap_config)
         self.offset_head = DEKROffset(**offset_config)
         self._init_weights()

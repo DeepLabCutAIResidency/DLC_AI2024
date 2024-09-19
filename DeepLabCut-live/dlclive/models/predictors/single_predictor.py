@@ -4,16 +4,14 @@ DeepLabCut Toolbox (deeplabcut.org)
 
 Licensed under GNU Lesser General Public License v3.0
 """
+
 from __future__ import annotations
 
 from typing import Tuple
 
 import torch
 
-from dlclive.models.predictors.base import (
-    BasePredictor,
-    PREDICTORS,
-)
+from dlclive.models.predictors.base import PREDICTORS, BasePredictor
 
 
 @PREDICTORS.register_module

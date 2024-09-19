@@ -26,6 +26,8 @@ class RecursiveImportFixer:
         for file in folder.iterdir():
             if file.suffix == ".py":
                 self._fix_imports(file)
+            elif file.is_dir():
+                self._walk_folder(file)
 
     def _fix_imports(self, file: Path) -> None:
         if not file.suffix == ".py":
@@ -42,7 +44,7 @@ class RecursiveImportFixer:
                 parsed = line.replace(self.import_prefix, self.new_import_prefix)
                 print(f"  Found import on line {index}")
                 print(f"    original: ```{line}```")
-                print(f"    fixed:    ```{line}```")
+                print(f"    fixed:    ```{parsed}```")
 
             fixed_lines.append(parsed)
 
@@ -66,9 +68,15 @@ def main(
 
 
 if __name__ == "__main__":
+    # main(
+    #     target=Path("../dlclive/models").resolve(),
+    #     import_prefix="deeplabcut.pose_estimation_pytorch.models",
+    #     new_import_prefix="dlclive.models",
+    #     dry_run=False,
+    # )
     main(
-        target=Path("../dlclive/models/model.py").resolve(),
-        import_prefix="deeplabcut.pose_estimation_pytorch.models",
-        new_import_prefix="dlclive.models",
-        dry_run=True,
+        target=Path("../dlclive/models").resolve(),
+        import_prefix="deeplabcut.pose_estimation_pytorch.registry",
+        new_import_prefix="dlclive.models.registry",
+        dry_run=False,
     )

@@ -8,8 +8,8 @@
 #
 # Licensed under GNU Lesser General Public License v3.0
 #
-from deeplabcut.pose_estimation_pytorch.models.heads.base import HEADS, BaseHead
-from deeplabcut.pose_estimation_pytorch.models.heads.dekr import DEKRHead
-from deeplabcut.pose_estimation_pytorch.models.heads.dlcrnet import DLCRNetHead
-from deeplabcut.pose_estimation_pytorch.models.heads.simple_head import HeatmapHead
-from deeplabcut.pose_estimation_pytorch.models.heads.transformer import TransformerHead
+from dlclive.models.heads.base import HEADS, BaseHead
+from dlclive.models.heads.dekr import DEKRHead
+from dlclive.models.heads.dlcrnet import DLCRNetHead
+from dlclive.models.heads.simple_head import HeatmapHead
+from dlclive.models.heads.transformer import TransformerHead

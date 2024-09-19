@@ -4,6 +4,7 @@ DeepLabCut Toolbox (deeplabcut.org)
 
 Licensed under GNU Lesser General Public License v3.0
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -12,7 +13,6 @@ import torch
 from torch import nn
 
 from dlclive.models.registry import Registry, build_from_cfg
-
 
 PREDICTORS = Registry("predictors", build_func=build_from_cfg)
 

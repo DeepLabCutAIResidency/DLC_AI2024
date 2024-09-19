@@ -16,47 +16,9 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 
-import deeplabcut.pose_estimation_pytorch.modelzoo.utils as modelzoo_utils
-from deeplabcut.core.weight_init import WeightInitialization
-from deeplabcut.pose_estimation_pytorch.registry import build_from_cfg, Registry
+from dlclive.models.registry import Registry, build_from_cfg
 
-
-def _build_detector(
-    cfg: dict,
-    weight_init: WeightInitialization | None = None,
-    pretrained: bool = False,
-    **kwargs,
-) -> BaseDetector:
-    """Builds a detector using its configuration file
-
-    Args:
-        cfg: The detector configuration.
-        weight_init: The weight initialization to use.
-        pretrained: Whether COCO pretrained weights should be loaded for the detector
-        **kwargs: Other parameters given by the Registry.
-
-    Returns:
-        the built detector
-    """
-    cfg["pretrained"] = pretrained
-    detector: BaseDetector = build_from_cfg(cfg, **kwargs)
-
-    if weight_init is not None:
-        _, _, _, snapshot_path = modelzoo_utils.get_config_model_paths(
-            project_name=weight_init.dataset,
-            pose_model_type="hrnetw32",  # pose model does not matter here
-            detector_type="fasterrcnn",  # TODO: include variant
-        )
-        if weight_init.customized_detector_checkpoint is not None:
-            snapshot_path = weight_init.customized_detector_checkpoint
-        logging.info(f"Loading detector checkpoint from {snapshot_path}")
-        snapshot = torch.load(snapshot_path, map_location="cpu")
-        detector.load_state_dict(snapshot["model"])
-
-    return detector
-
-
-DETECTORS = Registry("detectors", build_func=_build_detector)
+DETECTORS = Registry("detectors", build_func=build_from_cfg)
 
 
 class BaseDetector(ABC, nn.Module):

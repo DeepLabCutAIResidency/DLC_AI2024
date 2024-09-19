@@ -13,10 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deeplabcut.pose_estimation_pytorch.models.backbones.base import (
-    BACKBONES,
-    BaseBackbone,
-)
+from dlclive.models.backbones.base import BACKBONES, BaseBackbone
 
 
 @BACKBONES.register_module
@@ -71,7 +68,7 @@ class HRNet(BaseBackbone):
 
         Example:
             >>> import torch
-            >>> from deeplabcut.pose_estimation_pytorch.models.backbones import HRNet
+            >>> from dlclive.models.backbones import HRNet
             >>> backbone = HRNet(model_name='hrnet_w32', pretrained=False)
             >>> x = torch.randn(1, 3, 256, 256)
             >>> y = backbone(x)

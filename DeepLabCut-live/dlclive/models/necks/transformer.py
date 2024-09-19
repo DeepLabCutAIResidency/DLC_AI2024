@@ -14,11 +14,9 @@ import torch
 from einops import rearrange, repeat
 from timm.layers import trunc_normal_
 
-from deeplabcut.pose_estimation_pytorch.models.necks.base import BaseNeck, NECKS
-from deeplabcut.pose_estimation_pytorch.models.necks.layers import TransformerLayer
-from deeplabcut.pose_estimation_pytorch.models.necks.utils import (
-    make_sine_position_embedding,
-)
+from dlclive.models.necks.base import NECKS, BaseNeck
+from dlclive.models.necks.layers import TransformerLayer
+from dlclive.models.necks.utils import make_sine_position_embedding
 
 MIN_NUM_PATCHES = 16
 BN_MOMENTUM = 0.1

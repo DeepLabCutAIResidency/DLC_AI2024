@@ -13,10 +13,7 @@ import torch
 import torch.nn as nn
 from torchvision.transforms.functional import resize
 
-from deeplabcut.pose_estimation_pytorch.models.backbones.base import (
-    BACKBONES,
-    BaseBackbone,
-)
+from dlclive.models.backbones.base import BACKBONES, BaseBackbone
 
 
 @BACKBONES.register_module
@@ -68,7 +65,7 @@ class ResNet(BaseBackbone):
             torch.Tensor: Output tensor.
         Example:
             >>> import torch
-            >>> from deeplabcut.pose_estimation_pytorch.models.backbones import ResNet
+            >>> from dlclive.models.backbones import ResNet
             >>> backbone = ResNet(model_name='resnet50', pretrained=False)
             >>> x = torch.randn(1, 3, 256, 256)
             >>> y = backbone(x)
