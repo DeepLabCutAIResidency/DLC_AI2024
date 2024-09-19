@@ -21,7 +21,7 @@ from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError
 from dlclive.models.detectors import DETECTORS
-from dlclive.models.predictors import HeatmapPredictor
+from dlclive.models.predictors import PREDICTORS
 
 if typing.TYPE_CHECKING:
     from dlclive.processor import Processor
@@ -312,7 +312,9 @@ class DLCLive:
                 raise ValueError(f"Unknown device: {self.device}")
 
             self.sess = ort.InferenceSession(model_path, opts, providers=providers)
-            self.predictor = HeatmapPredictor.build(self.cfg)
+            self.predictor = PREDICTORS.build(
+                self.cfg["model"]["heads"]["bodypart"]["predictor"]
+            )
 
             if detector_path is not None:
                 self.sess_detect = ort.InferenceSession(
@@ -387,31 +389,13 @@ class DLCLive:
             start = time.time()
             offsets_and_scales = None
             if self.detector is not None:
-                # print(f"FRAME: {frame.shape}")
                 with torch.no_grad():
                     detections = self.detector(frame)[0]
 
-                    # in xyxy format
-                    bboxes, scores = detections["boxes"], detections["scores"]
-
-                    bboxes = bboxes[scores >= self.bbox_cutoff]
-                    if len(bboxes) > 0:
-                        bboxes = bboxes[:self.max_detections]
-
-                crop_size = 256
-                frames = torch.zeros(
-                    (len(bboxes), frame.shape[1], crop_size, crop_size),
-                    dtype=frame.dtype,
+                frame_batch, offsets_and_scales = self._prepare_top_down(
+                    frame, detections,
                 )
-                offsets_and_scales = []
-                for i, bbox in enumerate(bboxes):
-                    cropped_frame, offset, scale = utils.top_down_crop(
-                        frame[0], bbox, bbox_format="xyxy", output_size=256,
-                    )
-                    frames[i] = cropped_frame
-                    offsets_and_scales.append((offset, scale))
-
-                frame = frames
+                frame = frame_batch
 
             with torch.no_grad():
                 outputs = self.pose_model(frame)
@@ -420,21 +404,10 @@ class DLCLive:
             inf_time = end - start
 
             batch_pose = self.pose_model.get_predictions(outputs)["bodypart"]["poses"]
-            if offsets_and_scales is not None:
-                poses = []
-                for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
-                    poses.append(
-                        torch.cat(
-                            [
-                                pose[..., :2] * scale + torch.tensor(offset),
-                                pose[..., 2:3]
-                            ],
-                            dim=-1,
-                        )
-                    )
-                self.pose = torch.cat(poses)
-            else:
+            if self.detector is None:
                 self.pose = batch_pose[0]
+            else:
+                self.pose = self._postprocess_top_down(batch_pose, offsets_and_scales)
 
         elif self.model_type == "onnx":
             if self.precision == "FP32":
@@ -444,11 +417,20 @@ class DLCLive:
 
             frame = np.transpose(frame, (2, 0, 1))
             frame = np.expand_dims(frame, axis=0)
-            ort_input_names = self.sess.get_inputs()
-            ort_inputs = {ort_input_names[0].name: frame}
 
             start = time.time()
-            outputs = self.sess.run(None, ort_inputs)
+
+            offsets_and_scales = None
+            if self.sess_detect is not None:
+                detections = self.sess_detect.run(
+                    None, {_get_sess_input_name(self.sess_detect): frame}
+                )
+                frame_batch, offsets_and_scales = self._prepare_top_down(
+                    torch.from_numpy(frame), detections,
+                )
+                frame = frame_batch.numpy()
+
+            outputs = self.sess.run(None, {_get_sess_input_name(self.sess): frame})
             end = time.time()
             inf_time = end - start
 
@@ -456,8 +438,11 @@ class DLCLive:
                 "heatmap": torch.tensor(outputs[0]),
                 "locref": torch.tensor(outputs[1]),
             }
-
-            self.pose = self.predictor(outputs=outputs)["poses"]
+            batch_pose = self.predictor(outputs=outputs)["poses"]
+            if self.detector is None:
+                self.pose = batch_pose[0]
+            else:
+                self.pose = self._postprocess_top_down(batch_pose, offsets_and_scales)
 
         else:
             raise DLCLiveError(
@@ -486,3 +471,59 @@ class DLCLive:
             self.pose = self.processor.process(self.pose, **kwargs)
 
         return self.pose, inf_time
+
+    def _prepare_top_down(
+        self,
+        frame: torch.Tensor,
+        detections: dict[str, torch.Tensor]
+    ):
+        # in xyxy format
+        bboxes, scores = detections["boxes"], detections["scores"]
+
+        bboxes = bboxes[scores >= self.bbox_cutoff]
+        if len(bboxes) > 0:
+            bboxes = bboxes[:self.max_detections]
+
+        crop_size = 256
+        frame_batch = torch.zeros(
+            (len(bboxes), frame.shape[1], crop_size, crop_size),
+            dtype=frame.dtype,
+        )
+        offsets_and_scales = []
+        for i, bbox in enumerate(bboxes):
+            cropped_frame, offset, scale = utils.top_down_crop(
+                frame[0], bbox, bbox_format="xyxy", output_size=256,
+            )
+            frame_batch[i] = cropped_frame
+            offsets_and_scales.append((offset, scale))
+
+        return frame_batch, offsets_and_scales
+
+    def _postprocess_top_down(
+        self,
+        batch_pose: torch.Tensor,
+        offsets_and_scales: list[tuple[tuple[float, float], float]],
+    ) -> torch.Tensor:
+        poses = []
+        for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
+            poses.append(
+                torch.cat(
+                    [
+                        pose[..., :2] * scale + torch.tensor(offset),
+                        pose[..., 2:3]
+                    ],
+                    dim=-1,
+                )
+            )
+        return torch.cat(poses)
+
+
+def _get_sess_input_name(sess: ort.InferenceSession) -> str:
+    ort_input_names = sess.get_inputs()
+    if not len(ort_input_names) == 1:
+        raise ValueError(
+            "ONNX runtime model should have exactly one input; found "
+            f"{[n.name for n in ort_input_names]}"
+        )
+
+    return ort_input_names[0].name
