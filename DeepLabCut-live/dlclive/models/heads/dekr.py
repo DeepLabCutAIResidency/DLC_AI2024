@@ -38,7 +38,6 @@ class DEKRHead(BaseHead):
         super().__init__(stride, predictor)
         self.heatmap_head = DEKRHeatmap(**heatmap_config)
         self.offset_head = DEKROffset(**offset_config)
-        self._init_weights()
 
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         return {"heatmap": self.heatmap_head(x), "offset": self.offset_head(x)}

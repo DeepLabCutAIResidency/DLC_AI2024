@@ -54,7 +54,6 @@ class HeatmapHead(BaseHead):
         super().__init__(heatmap_head.stride, predictor)
         self.heatmap_head = heatmap_head
         self.locref_head = locref_head
-        self._init_weights()
 
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         outputs = {"heatmap": self.heatmap_head(x)}

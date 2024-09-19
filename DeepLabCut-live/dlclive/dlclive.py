@@ -16,8 +16,9 @@ import numpy as np
 import onnxruntime as ort
 import ruamel.yaml
 import torch
-from dlclive.models import PoseModel
+from torchvision.transforms import v2
 
+from dlclive.models import PoseModel
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError
@@ -151,6 +152,7 @@ class DLCLive:
         self.pose_model = None
         self.predictor = None
         self.pose = None
+        self.transform = None
 
         if self.model_type == "pytorch" and (self.snapshot) is None:
             raise DLCLiveError(
@@ -249,12 +251,20 @@ class DLCLive:
                 raise FileNotFoundError(
                     "The model file {} does not exist.".format(model_path)
                 )
-            weights = torch.load(model_path, map_location=torch.device(self.device))
+            weights = torch.load(
+                model_path, map_location=torch.device(self.device), weights_only=True
+            )
             self.pose_model = PoseModel.build(self.cfg["model"])
             self.pose_model.load_state_dict(weights["model"])
             self.pose_model = self.pose_model.to(self.device)
             self.pose_model.eval()
-            raise ValueError(f"NOPE lol {self.model_type}")
+
+            self.transform = v2.Compose(
+                [
+                    v2.ToDtype(torch.float32, scale=True),
+                    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
 
         elif self.model_type == "onnx":
             model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
@@ -352,15 +362,17 @@ class DLCLive:
         if frame is None:
             raise DLCLiveError("No frame provided for live pose estimation")
 
-        if frame is not None:
-            if frame.ndim >= 2:
-                self.convert2rgb = True
-            processed_frame = self.process_frame(frame)
+        if frame.ndim >= 2:
+            self.convert2rgb = True
+        processed_frame = self.process_frame(frame)
 
         if self.model_type == "pytorch":
-            frame = torch.tensor(processed_frame)
-            frame = frame.permute(2, 0, 1).unsqueeze(0)
-            frame = frame.to(self.device)
+            # TODO: Normalization + padding to 32 if needed -> need inference transform!
+            frame = (
+                self.transform(torch.from_numpy(processed_frame).permute(2, 0, 1))
+                .unsqueeze(0)
+                .to(self.device)
+            )
 
             with torch.no_grad():
                 start = time.time()

@@ -67,9 +67,6 @@ class TransformerHead(BaseHead):
             else nn.Sequential(nn.LayerNorm(dim * 3), nn.Linear(dim * 3, heatmap_dim))
         )
         self.heatmap_size = heatmap_size
-        # trunc_normal_(self.keypoint_token, std=.02)
-        if apply_init:
-            self.apply(self._init_weights)
 
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         x = self.mlp_head(x)

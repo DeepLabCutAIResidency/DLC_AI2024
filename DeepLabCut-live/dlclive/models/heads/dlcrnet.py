@@ -74,7 +74,6 @@ class DLCRNetHead(HeatmapHead):
                     in_channels=in_refined_channels, out_channels=num_limbs
                 )
             )
-        self._init_weights()
 
     def _make_layer_same_padding(
         self, in_channels: int, out_channels: int

@@ -1,17 +1,20 @@
-"""
-DeepLabCut Toolbox (deeplabcut.org)
-© A. & M. Mathis Labs
-
-Licensed under GNU Lesser General Public License v3.0
-"""
-
+#
+# DeepLabCut Toolbox (deeplabcut.org)
+# © A. & M.W. Mathis Labs
+# https://github.com/DeepLabCut/DeepLabCut
+#
+# Please see AUTHORS for contributors.
+# https://github.com/DeepLabCut/DeepLabCut/blob/main/AUTHORS
+#
+# Licensed under GNU Lesser General Public License v3.0
+#
 from __future__ import annotations
 
 from typing import Tuple
 
 import torch
 
-from dlclive.models.predictors.base import PREDICTORS, BasePredictor
+from dlclive.models.predictors.base import BasePredictor, PREDICTORS
 
 
 @PREDICTORS.register_module
@@ -33,7 +36,6 @@ class HeatmapPredictor(BasePredictor):
         clip_scores: bool = False,
         location_refinement: bool = True,
         locref_std: float = 7.2801,
-        stride: float = 8.0,
     ):
         """
         Args:
@@ -49,9 +51,10 @@ class HeatmapPredictor(BasePredictor):
         self.sigmoid = torch.nn.Sigmoid()
         self.location_refinement = location_refinement
         self.locref_std = locref_std
-        self.stride = stride
 
-    def forward(self, outputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    def forward(
+        self, stride: float, outputs: dict[str, torch.Tensor]
+    ) -> dict[str, torch.Tensor]:
         """Forward pass of SinglePredictor. Gets predictions from model output.
 
         Args:
@@ -68,7 +71,7 @@ class HeatmapPredictor(BasePredictor):
             >>> poses = predictor.forward(stride, output)
         """
         heatmaps = outputs["heatmap"]
-        scale_factors = self.stride, self.stride
+        scale_factors = stride, stride
 
         if self.apply_sigmoid:
             heatmaps = self.sigmoid(heatmaps)
@@ -119,15 +122,17 @@ class HeatmapPredictor(BasePredictor):
         """Gets the pose prediction given the heatmaps and locref.
 
         Args:
-            heatmap: Heatmap tensor with the following format (batch_size, height, width, num_joints)
-            locref: Locref tensor with the following format (batch_size, height, width, num_joints, 2)
+            heatmap: Heatmap tensor of shape (batch_size, height, width, num_joints)
+            locref: Locref tensor of shape (batch_size, height, width, num_joints, 2)
             scale_factors: Scale factors for the poses.
 
         Returns:
             Pose predictions of the format: (batch_size, num_people = 1, num_joints, 3)
 
         Example:
-            >>> predictor = HeatmapPredictor(location_refinement=True, locref_std=7.2801)
+            >>> predictor = HeatmapPredictor(
+            >>>   location_refinement=True, locref_std=7.2801
+            >>> )
             >>> heatmap = torch.rand(32, 17, 64, 64)
             >>> locref = torch.rand(32, 17, 64, 64, 2)
             >>> scale_factors = (0.5, 0.5)
@@ -145,45 +150,12 @@ class HeatmapPredictor(BasePredictor):
                     dz[b, 0, j, :2] = locref[b, y[b, j], x[b, j], j, :]
 
         x, y = torch.unsqueeze(x, 1), torch.unsqueeze(y, 1)
+
         x = x * scale_factors[1] + 0.5 * scale_factors[1] + dz[:, :, :, 0]
         y = y * scale_factors[0] + 0.5 * scale_factors[0] + dz[:, :, :, 1]
+
         pose = torch.empty((batch_size, 1, num_joints, 3))
         pose[:, :, :, 0] = x
         pose[:, :, :, 1] = y
         pose[:, :, :, 2] = dz[:, :, :, 2]
         return pose
-
-    @staticmethod
-    def build(cfg: dict) -> HeatmapPredictor:
-        # if cfg["method"] == "bu":
-        apply_sigmoid = cfg["model"]["heads"]["bodypart"]["predictor"]["apply_sigmoid"]
-        clip_scores = cfg["model"]["heads"]["bodypart"]["predictor"]["clip_scores"]
-        loc_ref = cfg["model"]["heads"]["bodypart"]["predictor"]["location_refinement"]
-        loc_ref_std = cfg["model"]["heads"]["bodypart"]["predictor"]["locref_std"]
-        if len(cfg["model"]["heads"]["bodypart"]["heatmap_config"]["strides"]) > 0:
-            if cfg["model"]["heads"]["bodypart"]["heatmap_config"]["strides"][0] > 0:
-                stride = float(cfg["model"]["backbone"]["output_stride"]) / float(
-                    cfg["model"]["heads"]["bodypart"]["heatmap_config"]["strides"][0]
-                )
-            else:
-                stride = float(cfg["model"]["backbone"]["output_stride"]) * -float(
-                    cfg["model"]["heads"]["bodypart"]["heatmap_config"]["strides"][0]
-                )
-        else:
-            stride = float(cfg["model"]["backbone"]["output_stride"])
-        predictor = HeatmapPredictor(
-            apply_sigmoid=apply_sigmoid,
-            stride=stride,
-            clip_scores=clip_scores,
-            location_refinement=loc_ref,
-            locref_std=loc_ref_std,
-        )
-
-        # elif cfg["method"] == "td":
-        #     apply_sigmoid = cfg["model"]["heads"]["bodypart"]["predictor"]["apply_sigmoid"]
-        #     clip_scores = cfg["model"]["heads"]["bodypart"]["predictor"]["clip_scores"]
-        #     loc_ref = cfg["model"]["heads"]["bodypart"]["predictor"]["location_refinement"]
-        #     heatmap_stride = cfg[]
-        #     predictor = HeatmapPredictor(apply_sigmoid=apply_sigmoid, clip_scores=clip_scores, location_refinement=loc_ref)
-
-        return predictor
