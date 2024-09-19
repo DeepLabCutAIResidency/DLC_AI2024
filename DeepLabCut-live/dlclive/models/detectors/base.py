@@ -41,7 +41,7 @@ class BaseDetector(ABC, nn.Module):
     @abstractmethod
     def forward(
         self, x: torch.Tensor, targets: list[dict[str, torch.Tensor]] | None = None
-    ) -> tuple[dict[str, torch.Tensor], list[dict[str, torch.Tensor]]]:
+    ) -> list[dict[str, torch.Tensor]]:
         """
         Forward pass of the detector
 
@@ -54,43 +54,3 @@ class BaseDetector(ABC, nn.Module):
             detections: for each of the b images, {"boxes": bounding_boxes}
         """
         pass
-
-    @abstractmethod
-    def get_target(self, labels: dict) -> list[dict]:
-        """
-        Get the target for training the detector
-
-        Args:
-            labels: annotations containing keypoints, bounding boxes, etc.
-
-        Returns:
-            list of dictionaries, each representing target information for a single annotation.
-        """
-        pass
-
-    def freeze_batch_norm_layers(self) -> None:
-        """Freezes batch norm layers
-
-        Running mean + var are always given to F.batch_norm, except when the layer is
-        in `train` mode and track_running_stats is False, see
-            https://pytorch.org/docs/stable/_modules/torch/nn/modules/batchnorm.html
-        So to 'freeze' the running stats, the only way is to set the layer to "eval"
-        mode.
-        """
-        for module in self.modules():
-            if isinstance(module, nn.modules.batchnorm._BatchNorm):
-                if self.freeze_bn_weights:
-                    module.weight.requires_grad = False
-                    module.bias.requires_grad = False
-                if self.freeze_bn_stats:
-                    module.eval()
-
-    def train(self, mode: bool = True) -> None:
-        """Sets the module in training or evaluation mode.
-
-        Args:
-            mode: whether to set training mode (True) or evaluation mode (False)
-        """
-        super().train(mode)
-        if self.freeze_bn_weights or self.freeze_bn_stats:
-            self.freeze_batch_norm_layers()

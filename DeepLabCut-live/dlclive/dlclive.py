@@ -5,8 +5,6 @@ DeepLabCut Toolbox (deeplabcut.org)
 Licensed under GNU Lesser General Public License v3.0
 """
 
-import glob
-import os
 import time
 import typing
 from pathlib import Path
@@ -22,6 +20,7 @@ from dlclive.models import PoseModel
 from dlclive import utils
 from dlclive.display import Display
 from dlclive.exceptions import DLCLiveError
+from dlclive.models.detectors import DETECTORS
 from dlclive.models.predictors import HeatmapPredictor
 
 if typing.TYPE_CHECKING:
@@ -36,17 +35,17 @@ class DLCLive:
     Parameters
     -----------
 
-    path : string
+    path: Path
         Full path to exported model directory
 
     model_type: string, optional
         which model to use: 'pytorch' or 'onnx' for exported snapshot
 
-    precision : string, optional
+    precision: string, optional
         precision of model weights, only for model_type='onnx'. Can be 'FP32' (default)
         or 'FP16'
 
-    cropping : list of int
+    cropping: list of int
         cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the
         dynamic cropping of each frame to speed of processing, so instead of analyzing
         the whole frame, it analyses only the part of the frame where the animal is
@@ -64,7 +63,7 @@ class DLCLive:
         updating the crop window for the next frame (this is why the margin is important
         and should be set large enough given the movement of the animal).
 
-    resize : float, optional
+    resize: float, optional
         Factor to resize the image.
         For example, resize=0.5 will downsize both the height and width of the image by
         a factor of 2.
@@ -82,18 +81,18 @@ class DLCLive:
             ii) to trigger external hardware based on pose estimation (e.g. see
             'TeensyLaser' processor)
 
-    convert2rgb : bool, optional
+    convert2rgb: bool, optional
         boolean flag to convert frames from BGR to RGB color scheme
 
-    display : bool, optional
+    display: bool, optional
         Display frames with DeepLabCut labels?
         This is useful for testing model accuracy and cropping parameters, but it is
         very slow.
 
-    display_lik : float, optional
+    display_lik: float, optional
         Likelihood threshold for display
 
-    display_raidus : int, optional
+    display_raidus: int, optional
         radius for keypoint display in pixels, default=3
     """
 
@@ -110,8 +109,9 @@ class DLCLive:
 
     def __init__(
         self,
-        path: str,
-        snapshot: str = None,
+        path: str | Path,
+        snapshot: str,
+        detector_snapshot: str | None = None,
         model_type: str = "onnx",
         precision: str = "FP32",
         device: str = "cpu",
@@ -122,14 +122,21 @@ class DLCLive:
         processor: Optional["Processor"] = None,
         display: typing.Union[bool, Display] = False,
         pcutoff: float = 0.5,
+        bbox_cutoff: float = 0.6,
+        max_detections: int = 10,
         display_radius: int = 3,
         display_cmap: str = "bmy",
     ):
 
-        self.path = path
+        self.path = Path(path)
+        self.snapshot = snapshot
+        self.detector_snapshot = detector_snapshot
+
+        self.bbox_cutoff = bbox_cutoff
+        self.max_detections = max_detections
+
         self.model_type = model_type
         self.device = device
-        self.snapshot = snapshot
         self.precision = precision
         self.cropping = cropping
         self.dynamic = dynamic
@@ -149,21 +156,19 @@ class DLCLive:
         self.cfg = None
         self.cfg_path = None
         self.sess = None
+        self.sess_detect = None
         self.pose_model = None
+        self.detector = None
         self.predictor = None
         self.pose = None
         self.transform = None
 
-        if self.model_type == "pytorch" and (self.snapshot) is None:
-            raise DLCLiveError(
-                f"The selected model type is '{self.model_type}', but no snapshot was "
-                f"provided"
-            )
-        if self.model_type == "pytorch" and (self.device) == "tensorrt":
+        if self.model_type == "pytorch" and self.device == "tensorrt":
             raise DLCLiveError(
                 f"The selected model type is '{self.model_type}' is not enabled by the "
                 f"selected runtime {self.device}"
             )
+
         self.read_config()
 
     def read_config(self):
@@ -245,20 +250,39 @@ class DLCLive:
         return frame
 
     def load_model(self):
-        if self.model_type == "pytorch":
-            model_path = os.path.join(self.path, self.snapshot)
-            if not os.path.isfile(model_path):
+        model_path = self.path / self.snapshot
+        if not model_path.exists():
+            raise FileNotFoundError(f"The model file {model_path} does not exist.")
+
+        detector_path = None
+        if self.detector_snapshot is not None:
+            detector_path = self.path / self.detector_snapshot
+            if not detector_path.exists():
                 raise FileNotFoundError(
-                    "The model file {} does not exist.".format(model_path)
+                    f"The detector file {detector_path} does not exist."
                 )
-            weights = torch.load(
+
+        if self.model_type == "pytorch":
+            pose_weights = torch.load(
                 model_path, map_location=torch.device(self.device), weights_only=True
             )
             self.pose_model = PoseModel.build(self.cfg["model"])
-            self.pose_model.load_state_dict(weights["model"])
+            self.pose_model.load_state_dict(pose_weights["model"])
             self.pose_model = self.pose_model.to(self.device)
             self.pose_model.eval()
 
+            if detector_path is not None:
+                detector_weights = torch.load(
+                    detector_path,
+                    map_location=torch.device(self.device),
+                    weights_only=False,
+                )
+                self.detector = DETECTORS.build(self.cfg["detector"]["model"])
+                self.detector.to(self.device)
+                self.detector.load_state_dict(detector_weights["model"])
+                self.detector.eval()
+
+            # TODO: Normalization + padding to 32 if needed -> need inference transform!
             self.transform = v2.Compose(
                 [
                     v2.ToDtype(torch.float32, scale=True),
@@ -267,28 +291,15 @@ class DLCLive:
             )
 
         elif self.model_type == "onnx":
-            model_paths = glob.glob(os.path.normpath(self.path + "/*.onnx"))
-            if self.precision == "FP16":
-                model_path = [
-                    model_paths[i]
-                    for i in range(len(model_paths))
-                    if "fp16" in model_paths[i]
-                ][0]
-            else:
-                model_path = model_paths[0]
             opts = ort.SessionOptions()
             opts.enable_profiling = False
-            if self.device == "cuda":
-                self.sess = ort.InferenceSession(
-                    model_path, opts, providers=["CUDAExecutionProvider"]
-                )
-            elif self.device == "cpu":
-                self.sess = ort.InferenceSession(
-                    model_path, opts, providers=["CPUExecutionProvider"]
-                )
 
+            if self.device == "cuda":
+                providers = ["CUDAExecutionProvider"]
+            elif self.device == "cpu":
+                providers = ["CPUExecutionProvider"]
             elif self.device == "tensorrt":
-                provider = [
+                providers = [
                     (
                         "TensorrtExecutionProvider",
                         {
@@ -297,12 +308,15 @@ class DLCLive:
                         },
                     )
                 ]
-                self.sess = ort.InferenceSession(model_path, opts, providers=provider)
+            else:
+                raise ValueError(f"Unknown device: {self.device}")
+
+            self.sess = ort.InferenceSession(model_path, opts, providers=providers)
             self.predictor = HeatmapPredictor.build(self.cfg)
 
-            if not os.path.isfile(model_path):
-                raise FileNotFoundError(
-                    "The model file {} does not exist.".format(model_path)
+            if detector_path is not None:
+                self.sess_detect = ort.InferenceSession(
+                    detector_path, opts, providers=providers
                 )
 
         else:
@@ -328,16 +342,13 @@ class DLCLive:
         inf_time:class: `float`
             the pose inference time
         """
-
-        # load model
         self.load_model()
 
-        inf_time = 0.0
         # get pose of first frame (first inference is very slow)
-        if frame is not None:
-            pose, inf_time = self.get_pose(frame, **kwargs)
+        if frame is None:
+            pose, inf_time = None, 0
         else:
-            pose = None
+            pose, inf_time = self.get_pose(frame, **kwargs)
 
         return pose, inf_time
 
@@ -367,21 +378,63 @@ class DLCLive:
         processed_frame = self.process_frame(frame)
 
         if self.model_type == "pytorch":
-            # TODO: Normalization + padding to 32 if needed -> need inference transform!
             frame = (
                 self.transform(torch.from_numpy(processed_frame).permute(2, 0, 1))
                 .unsqueeze(0)
                 .to(self.device)
             )
 
-            with torch.no_grad():
-                start = time.time()
-                outputs = self.pose_model(frame)
-                end = time.time()
-                inf_time = end - start
+            start = time.time()
+            offsets_and_scales = None
+            if self.detector is not None:
+                # print(f"FRAME: {frame.shape}")
+                with torch.no_grad():
+                    detections = self.detector(frame)[0]
 
-            self.pose = self.pose_model.get_predictions(outputs)
-            self.pose = self.pose["bodypart"]
+                    # in xyxy format
+                    bboxes, scores = detections["boxes"], detections["scores"]
+
+                    bboxes = bboxes[scores >= self.bbox_cutoff]
+                    if len(bboxes) > 0:
+                        bboxes = bboxes[:self.max_detections]
+
+                crop_size = 256
+                frames = torch.zeros(
+                    (len(bboxes), frame.shape[1], crop_size, crop_size),
+                    dtype=frame.dtype,
+                )
+                offsets_and_scales = []
+                for i, bbox in enumerate(bboxes):
+                    cropped_frame, offset, scale = utils.top_down_crop(
+                        frame[0], bbox, bbox_format="xyxy", output_size=256,
+                    )
+                    frames[i] = cropped_frame
+                    offsets_and_scales.append((offset, scale))
+
+                frame = frames
+
+            with torch.no_grad():
+                outputs = self.pose_model(frame)
+
+            end = time.time()
+            inf_time = end - start
+
+            batch_pose = self.pose_model.get_predictions(outputs)["bodypart"]["poses"]
+            if offsets_and_scales is not None:
+                poses = []
+                for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
+                    poses.append(
+                        torch.cat(
+                            [
+                                pose[..., :2] * scale + torch.tensor(offset),
+                                pose[..., 2:3]
+                            ],
+                            dim=-1,
+                        )
+                    )
+                self.pose = torch.cat(poses)
+            else:
+                self.pose = batch_pose[0]
 
         elif self.model_type == "onnx":
             if self.precision == "FP32":
@@ -404,7 +457,7 @@ class DLCLive:
                 "locref": torch.tensor(outputs[1]),
             }
 
-            self.pose = self.predictor(outputs=outputs)
+            self.pose = self.predictor(outputs=outputs)["poses"]
 
         else:
             raise DLCLiveError(
@@ -418,15 +471,15 @@ class DLCLive:
 
         # if frame is cropped, convert pose coordinates to original frame coordinates
         if self.resize is not None:
-            self.pose["poses"][0][0][:, :2] *= 1 / self.resize
+            self.pose[:, :, :2] *= 1 / self.resize
 
         if self.cropping is not None:
-            self.pose["poses"][0][0][0] += self.cropping[0]
-            self.pose["poses"][0][0][0] += self.cropping[2]
+            self.pose[:, :, 0] += self.cropping[0]
+            self.pose[:, :, 1] += self.cropping[2]
 
         if self.dynamic_cropping is not None:
-            self.pose["poses"][0][0][:, 0] += self.dynamic_cropping[0]
-            self.pose["poses"][0][0][:, 1] += self.dynamic_cropping[2]
+            self.pose[:, :, 0] += self.dynamic_cropping[0]
+            self.pose[:, :, 1] += self.dynamic_cropping[2]
 
         # process the pose
         if self.processor:
