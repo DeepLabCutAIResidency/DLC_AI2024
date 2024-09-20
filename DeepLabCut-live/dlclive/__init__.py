@@ -11,3 +11,4 @@ from dlclive.processor.processor import Processor
 from dlclive.version import VERSION, __version__
 
 # from dlclive.benchmark import benchmark, benchmark_videos, download_benchmarking_data
+from dlclive.benchmark import benchmark

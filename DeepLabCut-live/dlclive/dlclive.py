@@ -112,7 +112,7 @@ class DLCLive:
         path: str | Path,
         snapshot: str,
         detector_snapshot: str | None = None,
-        model_type: str = "onnx",
+        model_type: str = "pytorch",
         precision: str = "FP32",
         device: str = "cpu",
         cropping: Optional[List[int]] = None,
@@ -347,14 +347,13 @@ class DLCLive:
         self.load_model()
 
         # get pose of first frame (first inference is very slow)
-        if frame is None:
-            pose, inf_time = None, 0
-        else:
-            pose, inf_time = self.get_pose(frame, **kwargs)
+        pose = None
+        if frame is not None:
+            pose = self.get_pose(frame, **kwargs)
 
-        return pose, inf_time
+        return pose
 
-    def get_pose(self, frame=None, **kwargs):
+    def get_pose(self, frame: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
         Get the pose of an image
 
@@ -470,7 +469,7 @@ class DLCLive:
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
 
-        return self.pose, inf_time
+        return self.pose
 
     def _prepare_top_down(
         self,

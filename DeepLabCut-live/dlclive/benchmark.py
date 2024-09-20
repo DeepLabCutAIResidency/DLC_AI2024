@@ -10,17 +10,34 @@ import platform
 import subprocess
 import sys
 import time
+import warnings
+from pathlib import Path
 
 import colorcet as cc
 import cv2
 import h5py
+import numpy as np
+import ruamel
 import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze
 
-from dlclive import DLCLive
-from dlclive.version import VERSION
+try:
+    import pandas as pd
+    has_pandas = True
+except ModuleNotFoundError as err:
+    has_pandas = False
 
+try:
+    from tqdm import tqdm
+    has_tqdm = True
+except ModuleNotFoundError as err:
+    has_tqdm = False
+
+
+from dlclive import DLCLive
+from dlclive.utils import decode_fourcc
+from dlclive.version import VERSION
 
 def get_system_info() -> dict:
     """
@@ -85,6 +102,310 @@ def get_system_info() -> dict:
         "git_hash": git_hash,
         "dlclive_version": VERSION,
     }
+
+
+def benchmark(
+    path: str | Path,
+    snapshot: str,
+    video_path: str | Path,
+    detector_snapshot: str | None = None,
+    resize: float | None = None,
+    pixels: int | None = None,
+    cropping: list[int] = None,
+    dynamic: tuple[bool, float, int] = (False, 0.5, 10),
+    n_frames: int = 1000,
+    print_rate: bool = False,
+    display: bool = False,
+    pcutoff: float = 0.0,
+    max_detections: int = 10,
+    display_radius: int = 3,
+    cmap: str = "bmy",
+    save_poses: bool = False,
+    save_video: bool = False,
+    output: str | Path | None = None,
+) -> tuple[np.ndarray, tuple, dict]:
+    """Analyze DeepLabCut-live exported model on a video:
+
+    Calculate inference time, display keypoints, or get poses/create a labeled video.
+
+    Parameters
+    ----------
+    path : str
+        path to exported DeepLabCut model
+    snapshot: str
+        TODO
+    video_path : str
+        path to video file
+    detector_snapshot: str
+        For top-down models, the name of the file containing the detector snapshot
+    resize : int, optional
+        Resize factor. Can only use one of resize or pixels. If both are provided, will
+        use pixels. by default None
+    pixels : int, optional
+        Downsize image to this number of pixels, maintaining aspect ratio. Can only use
+        one of resize or pixels. If both are provided, will use pixels. by default None
+    cropping : list of int
+        cropping parameters in pixel number: [x1, x2, y1, y2]
+    dynamic: triple containing (state, detectiontreshold, margin)
+        If the state is true, then dynamic cropping will be performed. That means that
+        if an object is detected (i.e. any body part > detectiontreshold), then object
+        boundaries are computed according to the smallest/largest x position and
+        smallest/largest y position of all body parts. This  window is expanded by the
+        margin and from then on only the posture within this crop is analyzed (until the
+        object is lost, i.e. < detectiontreshold). The current position is utilized for
+        updating the crop window for the next frame (this is why the margin is important
+        and should be set large enough given the movement of the animal)
+    n_frames : int, optional
+        number of frames to run inference on, by default 1000
+    print_rate : bool, optional
+        flag to print inference rate frame by frame, by default False
+    display : bool, optional
+        flag to display keypoints on images. Useful for checking the accuracy of
+        exported models.
+    pcutoff : float, optional
+        likelihood threshold to display keypoints
+    max_detections: int
+        for top-down models, the maximum number of individuals to detect in a frame
+    display_radius : int, optional
+        size (radius in pixels) of keypoint to display
+    cmap : str, optional
+        a string indicating the :package:`colorcet` colormap, `options here
+        <https://colorcet.holoviz.org/>`, by default "bmy"
+    save_poses : bool, optional
+        flag to save poses to an hdf5 file. If True, operates similar to
+        :function:`DeepLabCut.benchmark_videos`, by default False
+    save_video : bool, optional
+        flag to save a labeled video. If True, operates similar to
+        :function:`DeepLabCut.create_labeled_video`, by default False
+    output : str, optional
+        path to directory to save pose and/or video file. If not specified, will use
+        the directory of video_path, by default None
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        vector of inference times
+    tuple
+        (image width, image height)
+    dict
+        metadata for video
+
+    Example
+    -------
+    Return a vector of inference times for 10000 frames:
+    dlclive.benchmark('/my/exported/model', 'my_video.avi', n_frames=10000)
+
+    Return a vector of inference times, resizing images to half the width and height for inference
+    dlclive.benchmark('/my/exported/model', 'my_video.avi', n_frames=10000, resize=0.5)
+
+    Display keypoints to check the accuracy of an exported model
+    dlclive.benchmark('/my/exported/model', 'my_video.avi', display=True)
+
+    Analyze a video (save poses to hdf5) and create a labeled video, similar to :function:`DeepLabCut.benchmark_videos` and :function:`create_labeled_video`
+    dlclive.benchmark('/my/exported/model', 'my_video.avi', save_poses=True, save_video=True)
+    """
+    path = Path(path)
+    video_path = Path(video_path)
+    if not video_path.exists():
+        raise ValueError(f"Could not find video: {video_path}: check that it exists!")
+
+    if output is None:
+        output = video_path.parent
+    else:
+        output = Path(output)
+        output.mkdir(exist_ok=True, parents=True)
+
+    # load video
+    cap = cv2.VideoCapture(str(video_path))
+    ret, frame = cap.read()
+    n_frames = (
+        n_frames
+        if (n_frames > 0) and (n_frames < cap.get(cv2.CAP_PROP_FRAME_COUNT) - 1)
+        else (cap.get(cv2.CAP_PROP_FRAME_COUNT) - 1)
+    )
+    n_frames = int(n_frames)
+    im_size = (
+        int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    )
+
+    # get resize factor
+    if pixels is not None:
+        resize = np.sqrt(pixels / (im_size[0] * im_size[1]))
+
+    if resize is not None:
+        im_size = (int(im_size[0] * resize), int(im_size[1] * resize))
+
+    # create video writer
+    if save_video:
+        colors = None
+        out_vid_file = output / f"{video_path.stem}_DLCLIVE_LABELED.avi"
+        fourcc = cv2.VideoWriter_fourcc(*"DIVX")
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print(out_vid_file)
+        print(fourcc)
+        print(fps)
+        print(im_size)
+        vid_writer = cv2.VideoWriter(str(out_vid_file), fourcc, fps, im_size)
+
+    # initialize DLCLive and perform inference
+    inf_times = np.zeros(n_frames)
+    poses = []
+
+    live = DLCLive(
+        path=path,
+        snapshot=snapshot,
+        detector_snapshot=detector_snapshot,
+        resize=resize,
+        cropping=cropping,
+        dynamic=dynamic,
+        display=display,
+        max_detections=max_detections,
+        pcutoff=pcutoff,
+        display_radius=display_radius,
+        display_cmap=cmap,
+    )
+
+    poses.append(live.init_inference(frame))
+
+    iterator = range(n_frames)
+    if print_rate or display:
+        iterator = tqdm(iterator)
+
+    for i in iterator:
+        ret, frame = cap.read()
+        if not ret:
+            warnings.warn(
+                f"Did not complete {n_frames:d} frames. There probably were not enough "
+                f"frames in the video {video_path}."
+            )
+            break
+
+        start_pose = time.time()
+        poses.append(live.get_pose(frame))
+        inf_times[i] = time.time() - start_pose
+        if save_video:
+            this_pose = poses[-1]
+            num_idv, num_bpt = this_pose.shape[:2]
+            num_colors = num_bpt
+
+            if colors is None:
+                all_colors = getattr(cc, cmap)
+                colors = [
+                    ImageColor.getcolor(c, "RGB")[::-1]
+                    for c in all_colors[:: int(len(all_colors) / num_colors)]
+                ]
+
+            for j in range(num_idv):
+                for k in range(num_bpt):
+                    color_idx = k
+                    if this_pose[j, k, 2] > pcutoff:
+                        x = int(this_pose[j, k, 0])
+                        y = int(this_pose[j, k, 1])
+                        frame = cv2.circle(
+                            frame, (x, y), display_radius, colors[color_idx], thickness=-1
+                        )
+
+            if resize is not None:
+                frame = cv2.resize(frame, im_size)
+            vid_writer.write(frame)
+
+        if print_rate:
+            print(f"pose rate = {int(1 / inf_times[i]):d}")
+
+    if print_rate:
+        print(f"mean pose rate = {int(np.mean(1 / inf_times)):d}")
+
+    # gather video and test parameterization
+    # dont want to fail here so gracefully failing on exception --
+    # eg. some packages of cv2 don't have CAP_PROP_CODEC_PIXEL_FORMAT
+    try:
+        fourcc = decode_fourcc(cap.get(cv2.CAP_PROP_FOURCC))
+    except:
+        fourcc = ""
+
+    try:
+        fps = round(cap.get(cv2.CAP_PROP_FPS))
+    except Exception:
+        fps = None
+
+    try:
+        pix_fmt = decode_fourcc(cap.get(cv2.CAP_PROP_CODEC_PIXEL_FORMAT))
+    except Exception:
+        pix_fmt = ""
+
+    try:
+        frame_count = round(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    except Exception:
+        frame_count = None
+
+    try:
+        orig_im_size = (
+            round(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            round(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        )
+    except Exception:
+        orig_im_size = None
+
+    meta = {
+        "video_path": video_path,
+        "video_codec": fourcc,
+        "video_pixel_format": pix_fmt,
+        "video_fps": fps,
+        "video_total_frames": frame_count,
+        "original_frame_size": orig_im_size,
+        "dlclive_params": live.parameterization,
+    }
+
+    # close video
+    cap.release()
+    if save_video:
+        vid_writer.release()
+
+    if save_poses:
+        cfg_path = path / "pytorch_config.yaml"
+        ruamel_file = ruamel.yaml.YAML()
+        dlc_cfg = ruamel_file.load(open(cfg_path, "r"))
+        bodyparts = dlc_cfg["metadata"]["bodyparts"]
+
+        max_idv = np.max([p.shape[0] for p in poses])
+
+        poses_array = -np.ones((len(poses), max_idv, len(bodyparts), 3))
+        for i, p in enumerate(poses):
+            num_det = len(p)
+            poses_array[i, :num_det] = p
+        poses = poses_array
+
+        num_frames, num_idv, num_bpts = poses.shape[:3]
+        individuals = [f"individual-{i}" for i in range(num_idv)]
+
+        if has_pandas:
+            poses = poses.reshape((num_frames, num_idv * num_bpts * 3))
+            col_index = pd.MultiIndex.from_product(
+                [individuals, bodyparts, ["x", "y", "likelihood"]],
+                names=["individual", "bodyparts", "coords"]
+            )
+            pose_df = pd.DataFrame(poses, columns=col_index)
+
+            out_dlc_file = output / (video_path.stem + "_DLCLIVE_POSES.h5")
+            try:
+                pose_df.to_hdf(out_dlc_file, key="df_with_missing", mode="w")
+            except ImportError as err:
+                print(
+                    "Cannot export predictions to H5 file. Install ``pytables`` extra "
+                    f"to export to HDF: {err}"
+                )
+            out_csv = Path(out_dlc_file).with_suffix(".csv")
+            pose_df.to_csv(out_csv)
+
+        else:
+            warnings.warn(
+                "Could not find installation of pandas; saving poses as a numpy array "
+                "with the dimensions (n_frames, n_keypoints, [x, y, likelihood])."
+            )
+            np.save(str(output / (video_path.stem + "_DLCLIVE_POSES.npy")), poses)
+
+    return inf_times, im_size, meta
 
 
 def analyze_video(
