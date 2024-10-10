@@ -24,12 +24,14 @@ from pip._internal.operations import freeze
 
 try:
     import pandas as pd
+
     has_pandas = True
 except ModuleNotFoundError as err:
     has_pandas = False
 
 try:
     from tqdm import tqdm
+
     has_tqdm = True
 except ModuleNotFoundError as err:
     has_tqdm = False
@@ -38,6 +40,7 @@ except ModuleNotFoundError as err:
 from dlclive import DLCLive
 from dlclive.utils import decode_fourcc
 from dlclive.version import VERSION
+
 
 def get_system_info() -> dict:
     """
@@ -226,7 +229,7 @@ def benchmark(
     n_frames = int(n_frames)
     im_size = (
         int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
     )
 
     # get resize factor
@@ -303,7 +306,11 @@ def benchmark(
                         x = int(this_pose[j, k, 0])
                         y = int(this_pose[j, k, 1])
                         frame = cv2.circle(
-                            frame, (x, y), display_radius, colors[color_idx], thickness=-1
+                            frame,
+                            (x, y),
+                            display_radius,
+                            colors[color_idx],
+                            thickness=-1,
                         )
 
             if resize is not None:
@@ -383,7 +390,7 @@ def benchmark(
             poses = poses.reshape((num_frames, num_idv * num_bpts * 3))
             col_index = pd.MultiIndex.from_product(
                 [individuals, bodyparts, ["x", "y", "likelihood"]],
-                names=["individual", "bodyparts", "coords"]
+                names=["individual", "bodyparts", "coords"],
             )
             pose_df = pd.DataFrame(poses, columns=col_index)
 

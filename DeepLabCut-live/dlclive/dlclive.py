@@ -392,7 +392,8 @@ class DLCLive:
                     detections = self.detector(frame)[0]
 
                 frame_batch, offsets_and_scales = self._prepare_top_down(
-                    frame, detections,
+                    frame,
+                    detections,
                 )
                 frame = frame_batch
 
@@ -425,7 +426,8 @@ class DLCLive:
                     None, {_get_sess_input_name(self.sess_detect): frame}
                 )
                 frame_batch, offsets_and_scales = self._prepare_top_down(
-                    torch.from_numpy(frame), detections,
+                    torch.from_numpy(frame),
+                    detections,
                 )
                 frame = frame_batch.numpy()
 
@@ -472,16 +474,14 @@ class DLCLive:
         return self.pose
 
     def _prepare_top_down(
-        self,
-        frame: torch.Tensor,
-        detections: dict[str, torch.Tensor]
+        self, frame: torch.Tensor, detections: dict[str, torch.Tensor]
     ):
         # in xyxy format
         bboxes, scores = detections["boxes"], detections["scores"]
 
         bboxes = bboxes[scores >= self.bbox_cutoff]
         if len(bboxes) > 0:
-            bboxes = bboxes[:self.max_detections]
+            bboxes = bboxes[: self.max_detections]
 
         crop_size = 256
         frame_batch = torch.zeros(
@@ -491,7 +491,10 @@ class DLCLive:
         offsets_and_scales = []
         for i, bbox in enumerate(bboxes):
             cropped_frame, offset, scale = utils.top_down_crop(
-                frame[0], bbox, bbox_format="xyxy", output_size=256,
+                frame[0],
+                bbox,
+                bbox_format="xyxy",
+                output_size=256,
             )
             frame_batch[i] = cropped_frame
             offsets_and_scales.append((offset, scale))
@@ -507,10 +510,7 @@ class DLCLive:
         for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
             poses.append(
                 torch.cat(
-                    [
-                        pose[..., :2] * scale + torch.tensor(offset),
-                        pose[..., 2:3]
-                    ],
+                    [pose[..., :2] * scale + torch.tensor(offset), pose[..., 2:3]],
                     dim=-1,
                 )
             )
