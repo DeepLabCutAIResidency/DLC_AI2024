@@ -28,10 +28,5 @@
 ** **CPU: 13th Gen Intel Core i7-13620H × 16** 
 ** **Linux: Ubuntu 24.04 LTS**
 
-^ *Startup time at inference for a TensorRT engine takes between 30 and 50 seconds, which skews the inference time measurement. Caching is used to reduce that time.*
-
-## Performance metrics
-
-|     |     |
-| --- | --- |
-|     |     |
+^ *Startup time at inference for a TensorRT engine takes between 30 and 50 seconds,
+which skews the inference time measurement. Caching is used to reduce that time.*
