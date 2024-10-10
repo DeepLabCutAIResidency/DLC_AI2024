@@ -1,4 +1,4 @@
-""""""
+"""Script to update DeepLabCut imports when copying predictors"""
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -68,15 +68,15 @@ def main(
 
 
 if __name__ == "__main__":
-    # main(
-    #     target=Path("../dlclive/models").resolve(),
-    #     import_prefix="deeplabcut.pose_estimation_pytorch.models",
-    #     new_import_prefix="dlclive.models",
-    #     dry_run=False,
-    # )
+    main(
+        target=Path("../dlclive/models").resolve(),
+        import_prefix="deeplabcut.pose_estimation_pytorch.models",
+        new_import_prefix="dlclive.models",
+        dry_run=True,
+    )
     main(
         target=Path("../dlclive/models").resolve(),
         import_prefix="deeplabcut.pose_estimation_pytorch.registry",
         new_import_prefix="dlclive.models.registry",
-        dry_run=False,
+        dry_run=True,
     )
