@@ -117,7 +117,7 @@ scheme
 TODO add __main__ element to script to use it in bash as well, not solely for importing
 functions.
 
-The benchmark_pytorch.py script provides the 'analyze_video' function for doing video
+The benchmark_pytorch.py script provides the 'benchmark_videos' function for doing video
 inference and benchmark inference speed on a pre-recorded video.
 
 The function takes the same parameters as `DLCLive` as it directly calls the DLCLive
@@ -141,9 +141,9 @@ Example of how to run the function:
 #### Python
 
 ```python
-from dlclive.benchmark_pytorch import analyze_video
+from dlclive.benchmark_pytorch import benchmark_videos
 
-analyze_video(
+benchmark_videos(
     model_path='/path/to/exported/model',
     video_path='/path/to/video',
     save_dir='/path/to/output',
@@ -161,7 +161,7 @@ functions.
 The LiveVideoInference.py script provides the 'analyze_live_video' function for doing
 live video tracking.
 
-The function is similar in function to 'analyze_video' but replaces `video_path` with
+The function is similar in function to 'benchmark_videos' but replaces `video_path` with
 the following arguments:
 
   - `camera` = float, default = 0; The camera to record the live video from. The default

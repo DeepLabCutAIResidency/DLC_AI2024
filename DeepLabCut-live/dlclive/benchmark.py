@@ -52,7 +52,8 @@ def get_system_info() -> dict:
         A dictionary containing the following system information:
         - host_name (str): Name of the machine.
         - op_sys (str): Operating system.
-        - python (str): Path to the Python executable, indicating the conda/virtual environment in use.
+        - python (str): Path to the Python executable, indicating the conda/virtual
+            environment in use.
         - device_type (str): Type of device used ('GPU' or 'CPU').
         - device (list): List containing the name of the GPU or CPU brand.
         - freeze (list): List of installed Python packages with their versions.
@@ -415,7 +416,7 @@ def benchmark(
     return inf_times, im_size, meta
 
 
-def analyze_video(
+def benchmark_videos(
     video_path: str,
     model_path: str,
     model_type: str,
@@ -436,7 +437,8 @@ def analyze_video(
     save_video=False,
 ):
     """
-    Analyzes a video to track keypoints using a DeepLabCut model, and optionally saves the keypoint data and the labeled video.
+    Analyzes a video to track keypoints using a DeepLabCut model, and optionally saves
+    the keypoint data and the labeled video.
 
     Parameters
     ----------
@@ -459,11 +461,20 @@ def analyze_video(
     display_radius : int, optional, default=5
         Radius of circles drawn for keypoints on video frames.
     resize : tuple of int (width, height) or None, optional
-        Resize dimensions for video frames. e.g. if resize = 0.5, the video will be processed in half the original size. If None, no resizing is applied.
+        Resize dimensions for video frames. e.g. if resize = 0.5, the video will be
+        processed in half the original size. If None, no resizing is applied.
     cropping : list of int or None, optional
         Cropping parameters [x1, x2, y1, y2] in pixels. If None, no cropping is applied.
     dynamic : tuple, optional, default=(False, 0.5, 10) (True/false), p cutoff, margin)
-        Parameters for dynamic cropping. If the state is true, then dynamic cropping will be performed. That means that if an object is detected (i.e. any body part > detectiontreshold), then object boundaries are computed according to the smallest/largest x position and smallest/largest y position of all body parts. This window is expanded by the margin and from then on only the posture within this crop is analyzed (until the object is lost, i.e. <detection treshold). The current position is utilized for updating the crop window for the next frame (this is why the margin is important and should be set large enough given the movement of the animal).
+        Parameters for dynamic cropping. If the state is true, then dynamic cropping
+        will be performed. That means that if an object is detected (i.e. any body part
+        > detectiontreshold), then object boundaries are computed according to the
+        smallest/largest x position and smallest/largest y position of all body parts.
+        This window is expanded by the margin and from then on only the posture within
+        this crop is analyzed (until the object is lost, i.e. <detection treshold). The
+        current position is used to update the crop window for the next frame
+        (this is why the margin is important and should be set large enough given the
+        movement of the animal).
     save_poses : bool, optional, default=False
         Whether to save the detected poses to CSV and HDF5 files.
     save_dir : str, optional, default='model_predictions'
@@ -556,7 +567,9 @@ def analyze_video(
         try:
             # pose = dlc_live.get_pose(frame)
             if frame_index == 0:
-                # dlc_live.dynamic = (False, dynamic[1], dynamic[2]) # TODO trying to fix issues with dynamic cropping jumping back and forth between dyanmic cropped and original image
+                # TODO trying to fix issues with dynamic cropping jumping back and forth
+                #  between dyanmic cropped and original image
+                # dlc_live.dynamic = (False, dynamic[1], dynamic[2])
                 pose, inf_time = dlc_live.init_inference(frame)  # load DLC model
             else:
                 # dlc_live.dynamic = dynamic
@@ -695,8 +708,7 @@ import os
 
 
 def main():
-    """Provides a command line interface to analyze_video function."""
-
+    """Provides a command line interface to benchmark_videos function."""
     parser = argparse.ArgumentParser(
         description="Analyze a video using a DeepLabCut model and visualize keypoints."
     )
@@ -791,8 +803,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Call the analyze_video function with the parsed arguments
-    analyze_video(
+    # Call the benchmark_videos function with the parsed arguments
+    benchmark_videos(
         video_path=args.video_path,
         model_path=args.model_path,
         model_type=args.model_type,
