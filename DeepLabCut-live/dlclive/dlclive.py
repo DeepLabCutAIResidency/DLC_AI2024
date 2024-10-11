@@ -479,7 +479,11 @@ class DLCLive:
         # FIXME(niels): this is so that the code behaves in the same way as it did for
         #  DeepLabCut 2.X - single animal pose only
         if self.single_animal:
-            self.pose = self.pose[0]
+            if len(self.pose) == 0:
+                bodyparts, coords = self.pose.shape[-2:]
+                self.pose = np.zeros((bodyparts, coords))
+            else:
+                self.pose = self.pose[0]
 
         return self.pose
 
