@@ -112,6 +112,7 @@ class DLCLive:
         path: str | Path,
         snapshot: str,
         detector_snapshot: str | None = None,
+        single_animal: bool = True,
         model_type: str = "pytorch",
         precision: str = "FP32",
         device: str = "cpu",
@@ -132,6 +133,7 @@ class DLCLive:
         self.snapshot = snapshot
         self.detector_snapshot = detector_snapshot
 
+        self.single_animal = single_animal
         self.bbox_cutoff = bbox_cutoff
         self.max_detections = max_detections
 
@@ -352,9 +354,7 @@ class DLCLive:
         if frame is not None:
             pose = self.get_pose(frame, **kwargs)
 
-        # FIXME(niels): this is so that the code behaves in the same way as it did for
-        #  DeepLabCut 2.X - single animal pose only
-        return pose[0]
+        return pose
 
     def get_pose(self, frame: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -474,9 +474,14 @@ class DLCLive:
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
 
+        self.pose = np.asarray(self.pose)
+
         # FIXME(niels): this is so that the code behaves in the same way as it did for
         #  DeepLabCut 2.X - single animal pose only
-        return self.pose[0]
+        if self.single_animal:
+            self.pose = self.pose[0]
+
+        return self.pose
 
     def _prepare_top_down(
         self, frame: torch.Tensor, detections: dict[str, torch.Tensor]
