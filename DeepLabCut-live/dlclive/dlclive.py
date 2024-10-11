@@ -508,7 +508,8 @@ class DLCLive:
         offsets_and_scales: list[tuple[tuple[float, float], float]],
     ) -> torch.Tensor:
         if len(batch_pose) == 0:
-            return batch_pose
+            bodyparts, coords = batch_pose.shape[-2:]
+            return torch.zeros((0, bodyparts, coords))
 
         poses = []
         for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
