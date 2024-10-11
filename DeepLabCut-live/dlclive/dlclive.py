@@ -470,10 +470,7 @@ class DLCLive:
             self.pose[:, :, 0] += self.dynamic_cropping[0]
             self.pose[:, :, 1] += self.dynamic_cropping[2]
 
-        # process the pose
-        if self.processor:
-            self.pose = self.processor.process(self.pose, **kwargs)
-
+        # convert to numpy array
         self.pose = np.asarray(self.pose)
 
         # FIXME(niels): this is so that the code behaves in the same way as it did for
@@ -484,6 +481,10 @@ class DLCLive:
                 self.pose = np.zeros((bodyparts, coords))
             else:
                 self.pose = self.pose[0]
+
+        # process the pose
+        if self.processor:
+            self.pose = self.processor.process(self.pose, **kwargs)
 
         return self.pose
 
