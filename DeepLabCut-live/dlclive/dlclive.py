@@ -401,7 +401,10 @@ class DLCLive:
                     frame,
                     detections,
                 )
-                frame = frame_batch
+                if len(frame_batch) > 0:
+                    frame = frame_batch.to(self.device)
+                else:
+                    offsets_and_scales = [(0, 0), 1]
 
             with torch.no_grad():
                 outputs = self.pose_model(frame)
@@ -414,6 +417,8 @@ class DLCLive:
                 self.pose = batch_pose[0]
             else:
                 self.pose = self._postprocess_top_down(batch_pose, offsets_and_scales)
+
+            self.pose = self.pose.cpu().numpy()
 
         elif self.model_type == "onnx":
             if self.precision == "FP32":
@@ -435,7 +440,8 @@ class DLCLive:
                     torch.from_numpy(frame),
                     detections,
                 )
-                frame = frame_batch.numpy()
+                if len(frame_batch) > 0:
+                    frame = frame_batch.numpy()
 
             outputs = self.sess.run(None, {_get_sess_input_name(self.sess): frame})
             end = time.time()
@@ -472,9 +478,6 @@ class DLCLive:
         if self.dynamic_cropping is not None:
             self.pose[:, :, 0] += self.dynamic_cropping[0]
             self.pose[:, :, 1] += self.dynamic_cropping[2]
-
-        # convert to numpy array
-        self.pose = np.asarray(self.pose)
 
         # FIXME(niels): this is so that the code behaves in the same way as it did for
         #  DeepLabCut 2.X - single animal pose only
