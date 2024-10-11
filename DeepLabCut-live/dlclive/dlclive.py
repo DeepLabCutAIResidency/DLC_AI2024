@@ -124,7 +124,7 @@ class DLCLive:
         display: typing.Union[bool, Display] = False,
         pcutoff: float = 0.5,
         bbox_cutoff: float = 0.6,
-        max_detections: int = 10,
+        max_detections: int = 1,
         display_radius: int = 3,
         display_cmap: str = "bmy",
     ):
@@ -219,19 +219,23 @@ class DLCLive:
 
         if self.dynamic[0]:
             if self.pose is not None:
-                if not len(self.pose) == 1:
+                if self.single_animal:
+                    pose = self.pose
+                elif len(self.pose) == 1:
+                    pose = self.pose[0]
+                else:
                     raise ValueError(
                         "Cannot use Dynamic Cropping - more than 1 individual found"
                     )
 
-                detected = self.pose[0, :, 2] >= self.dynamic[1]
-                if torch.any(detected):
+                detected = pose[:, 2] >= self.dynamic[1]
+                if np.any(detected):
                     h, w = frame.shape[0], frame.shape[1]
 
-                    x = self.pose[0, detected, 0]
-                    y = self.pose[0, detected, 1]
-                    xmin, xmax = int(torch.min(x)), int(torch.max(x))
-                    ymin, ymax = int(torch.min(y)), int(torch.max(y))
+                    x = pose[detected, 0]
+                    y = pose[detected, 1]
+                    xmin, xmax = int(np.min(x)), int(np.max(x))
+                    ymin, ymax = int(np.min(y)), int(np.max(y))
 
                     x1 = max([0, xmin - self.dynamic[2]])
                     x2 = min([w, xmax + self.dynamic[2]])
