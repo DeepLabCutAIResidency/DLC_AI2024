@@ -210,35 +210,36 @@ class DLCLive:
         frame :class:`numpy.ndarray`
             processed frame: convert type, crop, convert color
         """
-
         if self.cropping:
             frame = frame[
                 self.cropping[2] : self.cropping[3], self.cropping[0] : self.cropping[1]
             ]
+
         if self.dynamic[0]:
-
             if self.pose is not None:
-                detected = self.pose["poses"][0][0][:, 2] > self.dynamic[1]
+                if not len(self.pose) == 1:
+                    raise ValueError(
+                        "Cannot use Dynamic Cropping - more than 1 individual found"
+                    )
 
+                detected = self.pose[0, :, 2] >= self.dynamic[1]
                 if torch.any(detected):
+                    h, w = frame.shape[0], frame.shape[1]
 
-                    x = self.pose["poses"][0][0][detected, 0]
-                    y = self.pose["poses"][0][0][detected, 1]
+                    x = self.pose[0, detected, 0]
+                    y = self.pose[0, detected, 1]
+                    xmin, xmax = int(torch.min(x)), int(torch.max(x))
+                    ymin, ymax = int(torch.min(y)), int(torch.max(y))
 
-                    x1 = int(max([0, int(torch.amin(x)) - self.dynamic[2]]))
-                    x2 = int(
-                        min([frame.shape[1], int(torch.amax(x)) + self.dynamic[2]])
-                    )
-                    y1 = int(max([0, int(torch.amin(y)) - self.dynamic[2]]))
-                    y2 = int(
-                        min([frame.shape[0], int(torch.amax(y)) + self.dynamic[2]])
-                    )
+                    x1 = max([0, xmin - self.dynamic[2]])
+                    x2 = min([w, xmax + self.dynamic[2]])
+                    y1 = max([0, ymin - self.dynamic[2]])
+                    y2 = min([h, ymax + self.dynamic[2]])
+
                     self.dynamic_cropping = [x1, x2, y1, y2]
-
                     frame = frame[y1:y2, x1:x2]
 
                 else:
-
                     self.dynamic_cropping = None
 
         if self.resize != 1:
@@ -506,6 +507,9 @@ class DLCLive:
         batch_pose: torch.Tensor,
         offsets_and_scales: list[tuple[tuple[float, float], float]],
     ) -> torch.Tensor:
+        if len(batch_pose) == 0:
+            return batch_pose
+
         poses = []
         for pose, (offset, scale) in zip(batch_pose, offsets_and_scales):
             poses.append(
@@ -514,6 +518,7 @@ class DLCLive:
                     dim=-1,
                 )
             )
+
         return torch.cat(poses)
 
 
