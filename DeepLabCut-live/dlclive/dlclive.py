@@ -115,7 +115,7 @@ class DLCLive:
         single_animal: bool = True,
         model_type: str = "pytorch",
         precision: str = "FP32",
-        device: str = "cpu",
+        device: str | None = None,
         cropping: Optional[List[int]] = None,
         dynamic: Tuple[bool, float, float] = (False, 0.5, 10),
         resize: Optional[float] = None,
@@ -138,7 +138,7 @@ class DLCLive:
         self.max_detections = max_detections
 
         self.model_type = model_type
-        self.device = device
+        self.device = _parse_device(device)
         self.precision = precision
         self.cropping = cropping
         self.dynamic = dynamic
@@ -253,6 +253,9 @@ class DLCLive:
         return frame
 
     def load_model(self):
+        print("Loading model...")
+        print(f"Using device: {self.device}")
+
         model_path = self.path / self.snapshot
         if not model_path.exists():
             raise FileNotFoundError(f"The model file {model_path} does not exist.")
@@ -546,3 +549,17 @@ def _get_sess_input_name(sess: ort.InferenceSession) -> str:
         )
 
     return ort_input_names[0].name
+
+
+def _parse_device(device: str | None) -> None:
+    if device is None:
+        device = "auto"
+
+    if device == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        elif torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+
+    return device
