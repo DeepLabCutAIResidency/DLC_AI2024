@@ -401,10 +401,10 @@ class DLCLive:
                     frame,
                     detections,
                 )
-                if len(frame_batch) > 0:
-                    frame = frame_batch.to(self.device)
-                else:
+                if len(frame_batch) == 0:
                     offsets_and_scales = [(0, 0), 1]
+                else:
+                    frame = frame_batch.to(self.device)
 
             with torch.no_grad():
                 outputs = self.pose_model(frame)
@@ -561,8 +561,6 @@ def _parse_device(device: str | None) -> None:
     if device == "auto":
         if torch.cuda.is_available():
             return "cuda"
-        elif torch.backends.mps.is_available():
-            return "mps"
         return "cpu"
 
     return device
