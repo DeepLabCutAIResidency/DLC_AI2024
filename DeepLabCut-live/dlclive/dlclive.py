@@ -352,7 +352,9 @@ class DLCLive:
         if frame is not None:
             pose = self.get_pose(frame, **kwargs)
 
-        return pose
+        # FIXME(niels): this is so that the code behaves in the same way as it did for
+        #  DeepLabCut 2.X - single animal pose only
+        return pose[0]
 
     def get_pose(self, frame: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -472,7 +474,9 @@ class DLCLive:
         if self.processor:
             self.pose = self.processor.process(self.pose, **kwargs)
 
-        return self.pose
+        # FIXME(niels): this is so that the code behaves in the same way as it did for
+        #  DeepLabCut 2.X - single animal pose only
+        return self.pose[0]
 
     def _prepare_top_down(
         self, frame: torch.Tensor, detections: dict[str, torch.Tensor]
