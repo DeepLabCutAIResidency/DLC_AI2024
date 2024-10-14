@@ -16,26 +16,34 @@ of your GPU if you have one). We need both `torch` and `torchvision`.
 3. Install [`pytables`](https://www.pytables.org/usersguide/installation.html) (this is
 very easy using `conda`, and can be more painful with `pip` - we recommend installing 
 with conda).
-4. Install a custom version of [DeepLabCut-Live-GUI](
+4. Install some other needed dependencies
+5. Install a custom version of [DeepLabCut-Live-GUI](
 https://github.com/DeepLabCut/DeepLabCut-live-GUI/tree/niels/update_for_dlc3)
-5. Install the code 
+6. Install the code 
 
 ```bash
 ### 1. Create your conda environment
 conda create -n dlc3live python=3.10
 conda activate dlc3live
 
-### 2. Install PyTorch and Torchvision - this version is for CUDA 12.1 (and was tested 
-# with CUDA 12.2 as well).
+### 2. Install PyTorch and Torchvision
+# this version is for CUDA 12.1 (and was tested with CUDA 12.2 as well)
+pip install "numpy<2"
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# check that the installation worked;
+# this should print True if you want to use an NVIDIA-GPU
+python -c "import torch; print(torch.cuda.is_available());"
 
 ### 3. Install PyTables
 conda install -c conda-forge pytables==3.8.0
 
-### 4. Install the custom DLCLive-GUI code
-pip install "git+https://github.com/DeepLabCut/DeepLabCut-live-GUI.git@niels/update_for_dlc3"
+### 4. Install other dependencies
+pip install onnxruntime h5py ipython 
 
-### 5. Install DLCLive
+### 5. Install the custom DLCLive-GUI code
+pip install "git+https://github.com/DeepLabCut/DeepLabCut-live-GUI.git@niels/update_for_dlc3#egg=deeplabcut-live-gui"
+
+### 6. Install DLCLive
 # Clone this repo, checkout the correct branch
 git clone https://github.com/DeepLabCutAIResidency/DLC_AI2024.git
 git checkout niels/dlclive-dev
@@ -45,6 +53,16 @@ pip install .
 
 ### Finally - launch the DLCLive GUI
 dlclivegui
+```
+
+If you get a `numpy` error, such as `TypeError: no implementation found for 
+'numpy.copyto' on types that implement __array_function__: [<class 'numpy.ndarray'>, 
+<class 'numpy.ndarray'>]`, there might be an issue with the installation. I've been able
+to fix it by running:
+
+```python
+pip uninstall numpy
+pip install "numpy<2"
 ```
 
 **Exporting models:** You can export your DeepLabCut 3.0 models using the 
