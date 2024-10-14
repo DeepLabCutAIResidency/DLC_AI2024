@@ -1,5 +1,58 @@
 # DeepLabCut-Live: 3.0
 
+## Quick Note - Current (dev) Installation with DeepLabCut-Live-GUI
+
+DeepLabCut-live is currently being developed to run DeepLabCut 3.0 models. Here are 
+instructions on how to get your models working.
+
+**Installation** is still a bit tedious, but not impossible. Right now, you need to 
+clone this repository to run DeepLabCut-live for DeepLabCut PyTorch models. The basic
+recommended steps are as follows:
+
+1. Create a `conda` environment for DeepLabCut-live 3.0
+2. Install the [PyTorch version you need](https://pytorch.org/get-started/locally/) (we
+require `torch>=2.0.0`, but make sure you install the correct version to take advantage
+of your GPU if you have one). We need both `torch` and `torchvision`.
+3. Install [`pytables`](https://www.pytables.org/usersguide/installation.html) (this is
+very easy using `conda`, and can be more painful with `pip` - we recommend installing 
+with conda).
+4. Install a custom version of [DeepLabCut-Live-GUI](
+https://github.com/DeepLabCut/DeepLabCut-live-GUI/tree/niels/update_for_dlc3)
+5. Install the code 
+
+```bash
+### 1. Create your conda environment
+conda create -n dlc3live python=3.10
+conda activate dlc3live
+
+### 2. Install PyTorch and Torchvision - this version is for CUDA 12.1 (and was tested 
+# with CUDA 12.2 as well).
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+### 3. Install PyTables
+conda install -c conda-forge pytables==3.8.0
+
+### 4. Install the custom DLCLive-GUI code
+pip install "git+https://github.com/DeepLabCut/DeepLabCut-live-GUI.git@niels/update_for_dlc3"
+
+### 5. Install DLCLive
+# Clone this repo, checkout the correct branch
+git clone https://github.com/DeepLabCutAIResidency/DLC_AI2024.git
+git checkout niels/dlclive-dev
+# Install from source
+cd DLC_AI2024/DeepLabCut-live
+pip install .
+
+### Finally - launch the DLCLive GUI
+dlclivegui
+```
+
+**Exporting models:** You can export your DeepLabCut 3.0 models using the 
+`scripts/export.py` script. This will output a single file (e.g. 
+`"dlclive-export-bu-resnet50.pt"`) which should be used with DLCLive.
+
+## DeepLabCut-Live: 3.0
+
 This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time 
 applications that has minimal (software) dependencies. This new DLC Live pipeline can 
 handle DLC models produced in PyTorch, as of DLC 3.0.
