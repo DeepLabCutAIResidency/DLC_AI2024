@@ -69,6 +69,14 @@ pip install "numpy<2"
 `scripts/export.py` script. This will output a single file (e.g. 
 `"dlclive-export-bu-resnet50.pt"`) which should be used with DLCLive.
 
+**Running the DLCLive GUI:** Your existing processors should work with this updated 
+DeepLabCut-Live version. The DLC settings are largely unchanged: the `Model Type` is
+set to `pytorch`, and `FP32` should be used for now. One change from the TensorFlow
+version: for the model path, set the path to the `.pt` file created when calling export
+(and not the folder), as shown below: 
+
+![select_dlc.png](docs/assets/select_dlc.png)
+
 ## DeepLabCut-Live: 3.0
 
 This repository contains a [DeepLabCut](http://www.mousemotorlab.org/deeplabcut) inference pipeline for real-time 
