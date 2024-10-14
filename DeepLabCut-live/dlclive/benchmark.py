@@ -136,8 +136,6 @@ def benchmark(
     ----------
     path : str
         path to exported DeepLabCut model
-    snapshot: str
-        TODO
     video_path : str
         path to video file
     detector_snapshot: str
@@ -257,9 +255,7 @@ def benchmark(
     poses = []
 
     live = DLCLive(
-        path=path,
-        snapshot=snapshot,
-        detector_snapshot=detector_snapshot,
+        model_path=path,
         resize=resize,
         cropping=cropping,
         dynamic=dynamic,
@@ -422,7 +418,6 @@ def benchmark_videos(
     model_type: str,
     device: str,
     precision: str = "FP32",
-    snapshot: str = None,
     display=True,
     pcutoff=0.5,
     display_radius=5,
@@ -452,8 +447,6 @@ def benchmark_videos(
         Device to run the model on ('cpu' or 'cuda').
     precision : str, optional, default='FP32'
         Precision type for the model ('FP32' or 'FP16').
-    snapshot : str, optional
-        Snapshot to use for the model, if using pytorch as model type.
     display : bool, optional, default=True
         Whether to display frame with labelled key points.
     pcutoff : float, optional, default=0.5
@@ -498,7 +491,7 @@ def benchmark_videos(
 
     # Create the DLCLive object with cropping
     dlc_live = DLCLive(
-        path=model_path,
+        model_path=model_path,
         model_type=model_type,
         device=device,
         display=display,
@@ -506,7 +499,6 @@ def benchmark_videos(
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
         precision=precision,
-        snapshot=snapshot,
     )
 
     # Ensure save directory exists

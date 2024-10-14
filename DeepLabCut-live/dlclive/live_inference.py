@@ -125,8 +125,6 @@ def analyze_live_video(
         Prefix to label generated pose and video files
     precision : str, optional, default='FP32'
         Precision type for the model ('FP32' or 'FP16').
-    snapshot : str, optional
-        Snapshot to use for the model, if using pytorch as model type.
     display : bool, optional, default=True
         Whether to display frame with labelled key points.
     pcutoff : float, optional, default=0.5
@@ -161,7 +159,7 @@ def analyze_live_video(
     """
     # Create the DLCLive object with cropping
     dlc_live = DLCLive(
-        path=model_path,
+        model_path=model_path,
         model_type=model_type,
         device=device,
         display=False,
@@ -169,7 +167,6 @@ def analyze_live_video(
         cropping=cropping,  # Pass the cropping parameter
         dynamic=dynamic,
         precision=precision,
-        snapshot=snapshot,
     )
 
     # Ensure save directory exists

@@ -35,8 +35,8 @@ class DLCLive:
     Parameters
     -----------
 
-    path: Path
-        Full path to exported model directory
+    model_path: Path
+        Full path to exported model file
 
     model_type: string, optional
         which model to use: 'pytorch' or 'onnx' for exported snapshot
@@ -48,7 +48,7 @@ class DLCLive:
     cropping: list of int
         cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the
         dynamic cropping of each frame to speed of processing, so instead of analyzing
-        the whole frame, it analyses only the part of the frame where the animal is
+        the whole frame, it analyzes only the part of the frame where the animal is
 
     dynamic: triple containing (state, detectiontreshold, margin) #A: margin adds some
         space so the 'bbox' isn't too narrow around the animal'. First key points are
@@ -109,9 +109,7 @@ class DLCLive:
 
     def __init__(
         self,
-        path: str | Path,
-        snapshot: str,
-        detector_snapshot: str | None = None,
+        model_path: str | Path,
         single_animal: bool = True,
         model_type: str = "pytorch",
         precision: str = "FP32",
@@ -129,9 +127,7 @@ class DLCLive:
         display_cmap: str = "bmy",
     ):
 
-        self.path = Path(path)
-        self.snapshot = snapshot
-        self.detector_snapshot = detector_snapshot
+        self.path = Path(model_path)
 
         self.single_animal = single_animal
         self.bbox_cutoff = bbox_cutoff
@@ -170,8 +166,6 @@ class DLCLive:
                 f"The selected model type is '{self.model_type}' is not enabled by the "
                 f"selected runtime {self.device}"
             )
-
-        self.read_config()
 
     def read_config(self):
         """Reads configuration yaml file
@@ -260,36 +254,22 @@ class DLCLive:
         print("Loading model...")
         print(f"Using device: {self.device}")
 
-        model_path = self.path / self.snapshot
-        if not model_path.exists():
-            raise FileNotFoundError(f"The model file {model_path} does not exist.")
-
-        detector_path = None
-        if self.detector_snapshot is not None:
-            detector_path = self.path / self.detector_snapshot
-            if not detector_path.exists():
-                raise FileNotFoundError(
-                    f"The detector file {detector_path} does not exist."
-                )
+        if not self.path.exists():
+            raise FileNotFoundError(f"The model file {self.path} does not exist.")
 
         if self.model_type == "pytorch":
-            pose_weights = torch.load(
-                model_path, map_location=torch.device(self.device), weights_only=True
-            )
+            raw_data = torch.load(self.path, map_location="cpu", weights_only=True)
+            self.cfg = raw_data["config"]
+
             self.pose_model = PoseModel.build(self.cfg["model"])
-            self.pose_model.load_state_dict(pose_weights["model"])
+            self.pose_model.load_state_dict(raw_data["pose"])
             self.pose_model = self.pose_model.to(self.device)
             self.pose_model.eval()
 
-            if detector_path is not None:
-                detector_weights = torch.load(
-                    detector_path,
-                    map_location=torch.device(self.device),
-                    weights_only=False,
-                )
+            if raw_data.get("detector") is not None:
                 self.detector = DETECTORS.build(self.cfg["detector"]["model"])
                 self.detector.to(self.device)
-                self.detector.load_state_dict(detector_weights["model"])
+                self.detector.load_state_dict(raw_data["detector"])
                 self.detector.eval()
 
             # TODO: Normalization + padding to 32 if needed -> need inference transform!
@@ -321,12 +301,16 @@ class DLCLive:
             else:
                 raise ValueError(f"Unknown device: {self.device}")
 
+            self.read_config()
+
+            model_path = self.path / "pose.onnx"
             self.sess = ort.InferenceSession(model_path, opts, providers=providers)
             self.predictor = PREDICTORS.build(
                 self.cfg["model"]["heads"]["bodypart"]["predictor"]
             )
 
-            if detector_path is not None:
+            detector_path = self.path / "detector.onnx"
+            if detector_path.exists():
                 self.sess_detect = ort.InferenceSession(
                     detector_path, opts, providers=providers
                 )
