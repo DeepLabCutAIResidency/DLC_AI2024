@@ -139,8 +139,6 @@ def benchmark(
         path to video file
     single_animal: bool
         to make code behave like DLCLive for tensorflow models
-    detector_snapshot: str
-        For top-down models, the name of the file containing the detector snapshot
     resize : int, optional
         Resize factor. Can only use one of resize or pixels. If both are provided, will
         use pixels. by default None
@@ -374,11 +372,7 @@ def benchmark(
         vid_writer.release()
 
     if save_poses:
-        cfg_path = path / "pytorch_config.yaml"
-        ruamel_file = ruamel.yaml.YAML()
-        dlc_cfg = ruamel_file.load(open(cfg_path, "r"))
-        bodyparts = dlc_cfg["metadata"]["bodyparts"]
-
+        bodyparts = live.cfg["metadata"]["bodyparts"]
         max_idv = np.max([p.shape[0] for p in poses])
 
         poses_array = -np.ones((len(poses), max_idv, len(bodyparts), 3))
