@@ -228,7 +228,7 @@ def top_down_crop(
     bbox_format: str,
     output_size: int,
     center: bool = True,
-) -> tuple[np.array, tuple[int, int], int]:
+) -> tuple[torch.Tensor, tuple[int, int], int]:
     """
     Only works for square cropped bounding boxes. Crops images around bounding boxes
     for top-down pose estimation in a MMpose style. Computes offsets so that

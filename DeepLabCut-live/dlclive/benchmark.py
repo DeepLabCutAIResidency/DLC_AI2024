@@ -110,9 +110,8 @@ def get_system_info() -> dict:
 
 def benchmark(
     path: str | Path,
-    snapshot: str,
     video_path: str | Path,
-    detector_snapshot: str | None = None,
+    single_animal: bool = True,
     resize: float | None = None,
     pixels: int | None = None,
     cropping: list[int] = None,
@@ -138,6 +137,8 @@ def benchmark(
         path to exported DeepLabCut model
     video_path : str
         path to video file
+    single_animal: bool
+        to make code behave like DLCLive for tensorflow models
     detector_snapshot: str
         For top-down models, the name of the file containing the detector snapshot
     resize : int, optional
@@ -256,6 +257,7 @@ def benchmark(
 
     live = DLCLive(
         model_path=path,
+        single_animal=single_animal,
         resize=resize,
         cropping=cropping,
         dynamic=dynamic,
@@ -286,6 +288,11 @@ def benchmark(
         inf_times[i] = time.time() - start_pose
         if save_video:
             this_pose = poses[-1]
+
+            if single_animal:
+                # expand individual dimension
+                this_pose = this_pose[None]
+
             num_idv, num_bpt = this_pose.shape[:2]
             num_colors = num_bpt
 

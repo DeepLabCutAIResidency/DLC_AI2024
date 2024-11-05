@@ -125,6 +125,7 @@ class DLCLive:
         max_detections: int = 1,
         display_radius: int = 3,
         display_cmap: str = "bmy",
+        detector_skip_frames: int = 0,
     ):
 
         self.path = Path(model_path)
@@ -160,6 +161,11 @@ class DLCLive:
         self.predictor = None
         self.pose = None
         self.transform = None
+
+        self.skip_detections = None
+        self.skip_age = detector_skip_frames + 1
+        self.detector_skip_frames = detector_skip_frames
+        self.detector_skip_margin = 20
 
         if self.model_type == "pytorch" and self.device == "tensorrt":
             raise DLCLiveError(
@@ -321,7 +327,7 @@ class DLCLive:
                 "'pytorch' or 'onnx'"
             )
 
-    def init_inference(self, frame=None, **kwargs):
+    def init_inference(self, frame=None, **kwargs) -> np.ndarray:
         """
         Load model and perform inference on first frame -- the first inference is
         usually very slow.
@@ -371,6 +377,7 @@ class DLCLive:
         if frame.ndim >= 2:
             self.convert2rgb = True
         processed_frame = self.process_frame(frame)
+        image_h, image_w = processed_frame.shape[:2]
 
         if self.model_type == "pytorch":
             frame = (
@@ -379,11 +386,24 @@ class DLCLive:
                 .to(self.device)
             )
 
-            start = time.time()
             offsets_and_scales = None
             if self.detector is not None:
-                with torch.no_grad():
-                    detections = self.detector(frame)[0]
+                if self.skip_age < self.detector_skip_frames:
+                    # print(f"skip age {self.skip_age} - using skip")
+                    detections = self.skip_detections
+                    # print(detections["boxes"].shape)
+                    # print(detections["scores"].shape)
+                    # print(detections["boxes"])
+                    # print("---")
+                else:
+                    # print(f"skip age {self.skip_age} - running det")
+                    self.skip_age = 0
+                    with torch.no_grad():
+                        detections = self.detector(frame)[0]
+                    # print(detections["boxes"].shape)
+                    # print(detections["scores"].shape)
+                    # print(detections["boxes"])
+                    # print("---")
 
                 frame_batch, offsets_and_scales = self._prepare_top_down(
                     frame,
@@ -397,16 +417,18 @@ class DLCLive:
             with torch.no_grad():
                 outputs = self.pose_model(frame)
 
-            end = time.time()
-            inf_time = end - start
-
             batch_pose = self.pose_model.get_predictions(outputs)["bodypart"]["poses"]
             if self.detector is None:
-                self.pose = batch_pose[0]
+                pose = batch_pose[0]
             else:
-                self.pose = self._postprocess_top_down(batch_pose, offsets_and_scales)
+                pose = self._postprocess_top_down(batch_pose, offsets_and_scales)
+                if self.skip_age < self.detector_skip_frames:
+                    self.skip_age += 1
+                    self.skip_detections = self._detections_from_pose(
+                        pose, image_w, image_h
+                    )
 
-            self.pose = self.pose.cpu().numpy()
+            self.pose = pose.cpu().numpy()
 
         elif self.model_type == "onnx":
             if self.precision == "FP32":
@@ -529,6 +551,57 @@ class DLCLive:
             )
 
         return torch.cat(poses)
+
+    def _detections_from_pose(
+        self,
+        pose: torch.Tensor,
+        image_w: int,
+        image_h: int,
+    ) -> dict:
+        # self.pose: num_det, num_kpts, x-y-score
+        num_det, num_kpts = pose.shape[:2]
+        long_edge = max(image_w, image_h)
+
+        # print("POSE TO BBOXES")
+        # print("POSE:")
+        # for p in pose:
+        #     print(p)
+        # print()
+
+        bboxes = torch.zeros((num_det, 4))
+        bboxes[:, :2] = (
+            torch.min(torch.nan_to_num(pose, long_edge)[..., :2], dim=1)[0]
+            - self.detector_skip_margin
+        )
+        bboxes[:, 2:4] = (
+            torch.max(torch.nan_to_num(pose, 0)[..., :2], dim=1)[0]
+            + self.detector_skip_margin
+        )
+        # print("BBOXES:")
+        # for p in bboxes:
+        #     print(p)
+        # print()
+
+        bboxes = torch.clip(
+            bboxes,
+            min=torch.zeros(4),
+            max=torch.tensor([image_w, image_h, image_w, image_h]),
+        )
+        # print("BBOXES:")
+        # for p in bboxes:
+        #     print(p)
+        # print()
+        # bboxes[..., 2] = bboxes[..., 2] - bboxes[..., 0]  # to width
+        # bboxes[..., 3] = bboxes[..., 3] - bboxes[..., 1]  # to height
+        # print("BBOXES XYWH:")
+        # for p in bboxes:
+        #     print(p)
+        # print()
+
+        return dict(
+            boxes=bboxes,
+            scores=torch.ones(num_det),
+        )
 
 
 def _get_sess_input_name(sess: ort.InferenceSession) -> str:
