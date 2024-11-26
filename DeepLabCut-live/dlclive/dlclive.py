@@ -42,8 +42,8 @@ class DLCLive:
         which model to use: 'pytorch' or 'onnx' for exported snapshot
 
     precision: string, optional
-        precision of model weights, only for model_type='onnx'. Can be 'FP32' (default)
-        or 'FP16'
+        precision of model weights, for model_type='onnx' or 'pytorch'. Can be 'FP32'
+        (default) or 'FP16'
 
     cropping: list of int
         cropping parameters in pixel number: [x1, x2, y1, y2] #A: Maybe this is the
@@ -272,11 +272,17 @@ class DLCLive:
             self.pose_model = self.pose_model.to(self.device)
             self.pose_model.eval()
 
+            if self.precision == "FP16":
+                self.pose_model = self.pose_model.half()
+
             if raw_data.get("detector") is not None:
                 self.detector = DETECTORS.build(self.cfg["detector"]["model"])
                 self.detector.to(self.device)
                 self.detector.load_state_dict(raw_data["detector"])
                 self.detector.eval()
+
+                if self.precision == "FP16":
+                    self.detector = self.detector.half()
 
             # TODO: Normalization + padding to 32 if needed -> need inference transform!
             self.transform = v2.Compose(
@@ -385,25 +391,17 @@ class DLCLive:
                 .unsqueeze(0)
                 .to(self.device)
             )
+            if self.precision == "FP16":
+                frame = frame.half()
 
             offsets_and_scales = None
             if self.detector is not None:
                 if self.skip_age < self.detector_skip_frames:
-                    # print(f"skip age {self.skip_age} - using skip")
                     detections = self.skip_detections
-                    # print(detections["boxes"].shape)
-                    # print(detections["scores"].shape)
-                    # print(detections["boxes"])
-                    # print("---")
                 else:
-                    # print(f"skip age {self.skip_age} - running det")
                     self.skip_age = 0
                     with torch.no_grad():
                         detections = self.detector(frame)[0]
-                    # print(detections["boxes"].shape)
-                    # print(detections["scores"].shape)
-                    # print(detections["boxes"])
-                    # print("---")
 
                 frame_batch, offsets_and_scales = self._prepare_top_down(
                     frame,
@@ -558,15 +556,18 @@ class DLCLive:
         image_w: int,
         image_h: int,
     ) -> dict:
-        # self.pose: num_det, num_kpts, x-y-score
+        """Computes detections from pose.
+
+        Args:
+            pose: Detected keypoints of shape (num_det, num_kpts, 3).
+            image_w: The width of the image
+
+        Returns:
+            A dictionary containing a "boxes" and a "scores" key, matching the output
+            format of an object detector
+        """
         num_det, num_kpts = pose.shape[:2]
         long_edge = max(image_w, image_h)
-
-        # print("POSE TO BBOXES")
-        # print("POSE:")
-        # for p in pose:
-        #     print(p)
-        # print()
 
         bboxes = torch.zeros((num_det, 4))
         bboxes[:, :2] = (
@@ -577,31 +578,12 @@ class DLCLive:
             torch.max(torch.nan_to_num(pose, 0)[..., :2], dim=1)[0]
             + self.detector_skip_margin
         )
-        # print("BBOXES:")
-        # for p in bboxes:
-        #     print(p)
-        # print()
-
         bboxes = torch.clip(
             bboxes,
             min=torch.zeros(4),
             max=torch.tensor([image_w, image_h, image_w, image_h]),
         )
-        # print("BBOXES:")
-        # for p in bboxes:
-        #     print(p)
-        # print()
-        # bboxes[..., 2] = bboxes[..., 2] - bboxes[..., 0]  # to width
-        # bboxes[..., 3] = bboxes[..., 3] - bboxes[..., 1]  # to height
-        # print("BBOXES XYWH:")
-        # for p in bboxes:
-        #     print(p)
-        # print()
-
-        return dict(
-            boxes=bboxes,
-            scores=torch.ones(num_det),
-        )
+        return dict(boxes=bboxes, scores=torch.ones(num_det))
 
 
 def _get_sess_input_name(sess: ort.InferenceSession) -> str:
