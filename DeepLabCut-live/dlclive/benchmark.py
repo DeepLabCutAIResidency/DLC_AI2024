@@ -15,9 +15,7 @@ from pathlib import Path
 
 import colorcet as cc
 import cv2
-import h5py
 import numpy as np
-import ruamel
 import torch
 from PIL import ImageColor
 from pip._internal.operations import freeze
@@ -657,43 +655,7 @@ def save_poses_to_files(video_path, save_dir, bodyparts, poses, timestamp):
             ]
             writer.writerow(row)
 
-    # Save to HDF5
-    with h5py.File(h5_save_path, "w") as hf:
-        hf.create_dataset(name="frames", data=[entry["frame"] for entry in poses])
-        for i, bp in enumerate(bodyparts):
-            hf.create_dataset(
-                name=f"{bp}_x",
-                data=[
-                    (
-                        entry["pose"]["poses"][0][0][i, 0].item()
-                        if isinstance(entry["pose"]["poses"][0][0][i, 0], torch.Tensor)
-                        else entry["pose"]["poses"][0][0][i, 0]
-                    )
-                    for entry in poses
-                ],
-            )
-            hf.create_dataset(
-                name=f"{bp}_y",
-                data=[
-                    (
-                        entry["pose"]["poses"][0][0][i, 1].item()
-                        if isinstance(entry["pose"]["poses"][0][0][i, 1], torch.Tensor)
-                        else entry["pose"]["poses"][0][0][i, 1]
-                    )
-                    for entry in poses
-                ],
-            )
-            hf.create_dataset(
-                name=f"{bp}_confidence",
-                data=[
-                    (
-                        entry["pose"]["poses"][0][0][i, 2].item()
-                        if isinstance(entry["pose"]["poses"][0][0][i, 2], torch.Tensor)
-                        else entry["pose"]["poses"][0][0][i, 2]
-                    )
-                    for entry in poses
-                ],
-            )
+
 
 
 import argparse
