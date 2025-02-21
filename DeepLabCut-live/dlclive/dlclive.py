@@ -7,6 +7,7 @@ Licensed under GNU Lesser General Public License v3.0
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -30,6 +31,9 @@ class DLCLive:
 
     model_type: string, optional
         which model to use: 'pytorch' or 'onnx' for exported snapshot
+
+    tf_config:
+
 
     precision: string, optional
         precision of model weights, for model_type='onnx' or 'pytorch'. Can be 'FP32'
@@ -97,10 +101,11 @@ class DLCLive:
     def __init__(
         self,
         model_path: str | Path,
-        single_animal: bool = True,
-        model_type: str = "pytorch",
+        model_type: str = "base",
+        # tf_config: Any = None,
         precision: str = "FP32",
-        device: str | None = None,
+        # single_animal: bool = True,
+        # device: str | None = None,
         cropping: list[int] | None = None,
         dynamic: tuple[bool, float, float] = (False, 0.5, 10),
         resize: float | None = None,
@@ -108,19 +113,17 @@ class DLCLive:
         processor: Processor | None = None,
         display: bool | Display = False,
         pcutoff: float = 0.5,
-        bbox_cutoff: float = 0.6,
-        max_detections: int = 1,
+        # bbox_cutoff: float = 0.6,
+        # max_detections: int = 1,
         display_radius: int = 3,
         display_cmap: str = "bmy",
+        **kwargs,
     ):
         self.path = Path(model_path)
         self.runner = factory.build_runner(
             model_type,
             model_path,
-            device=device,
-            bbox_cutoff=bbox_cutoff,
-            max_detections=max_detections,
-            single_animal=single_animal,
+            **kwargs,
         )
         self.is_initialized = False
 
@@ -284,15 +287,15 @@ class DLCLive:
 
         # if frame is cropped, convert pose coordinates to original frame coordinates
         if self.resize is not None:
-            self.pose[:, :, :2] *= 1 / self.resize
+            self.pose[..., :2] *= 1 / self.resize
 
         if self.cropping is not None:
-            self.pose[:, :, 0] += self.cropping[0]
-            self.pose[:, :, 1] += self.cropping[2]
+            self.pose[..., 0] += self.cropping[0]
+            self.pose[..., 1] += self.cropping[2]
 
         if self.dynamic_cropping is not None:
-            self.pose[:, :, 0] += self.dynamic_cropping[0]
-            self.pose[:, :, 1] += self.dynamic_cropping[2]
+            self.pose[..., 0] += self.dynamic_cropping[0]
+            self.pose[..., 1] += self.dynamic_cropping[2]
 
         # process the pose
         if self.processor:

@@ -113,7 +113,7 @@ class TensorFlowRunner(BaseRunner):
         return pose
 
     def init_inference(self, frame: np.ndarray, **kwargs) -> np.ndarray:
-        model_file = glob.glob(os.path.normpath(self.path + "/*.pb"))[0]
+        model_file = glob.glob(os.path.normpath(str(self.path) + "/*.pb"))[0]
 
         tf_ver = tf.__version__
         tf_version_2 = tf_ver[0] == "2"

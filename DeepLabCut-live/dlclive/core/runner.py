@@ -27,7 +27,7 @@ class BaseRunner(abc.ABC):
     """
 
     def __init__(self, path: str | Path) -> None:
-        self.path = path
+        self.path = Path(path)
         self.cfg = None
 
     @abc.abstractmethod
