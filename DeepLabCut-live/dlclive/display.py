@@ -8,27 +8,22 @@ Licensed under GNU Lesser General Public License v3.0
 from tkinter import Label, Tk
 
 import colorcet as cc
-import numpy as np
 from PIL import Image, ImageDraw, ImageTk
 
-from dlclive import utils
 
-
-class Display(object):
+class Display:
     """
     Simple object to display frames with DLC labels.
 
     Parameters
     -----------
-    cmap : string
-        string indicating the Matoplotlib colormap to use.
+    cmap: string
+        The Matplotlib colormap to use.
     pcutoff : float
         likelihood threshold to display points
     """
 
     def __init__(self, cmap="bmy", radius=3, pcutoff=0.5):
-        """Constructor method"""
-
         self.cmap = cmap
         self.colors = None
         self.radius = radius
@@ -73,6 +68,9 @@ class Display(object):
 
             img = Image.fromarray(frame)
             draw = ImageDraw.Draw(img)
+            if len(pose.shape) == 2:
+                pose = pose[None]
+
             for i in range(pose.shape[0]):
                 for j in range(pose.shape[1]):
                     if pose[i, j, 2] > self.pcutoff:
@@ -99,7 +97,7 @@ class Display(object):
                             )
                             coords = [x0, y0, x1, y1]
                             draw.ellipse(
-                                coords, fill=self.colors[i], outline=self.colors[i]
+                                coords, fill=self.colors[j], outline=self.colors[j]
                             )
                         except Exception as e:
                             print(e)
@@ -112,5 +110,4 @@ class Display(object):
         """
         Destroys the opencv image window
         """
-
         self.window.destroy()
