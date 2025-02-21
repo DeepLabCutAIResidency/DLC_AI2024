@@ -681,13 +681,6 @@ def main():
         help="Model precision (e.g., 'FP32', 'FP16').",
     )
     parser.add_argument(
-        "-s",
-        "--snapshot",
-        type=str,
-        default=None,
-        help="Path to a specific model snapshot.",
-    )
-    parser.add_argument(
         "-d", "--display", action="store_true", help="Display keypoints on the video."
     )
     parser.add_argument(
@@ -765,7 +758,6 @@ def main():
         model_type=args.model_type,
         device=args.device,
         precision=args.precision,
-        snapshot=args.snapshot,
         display=args.display,
         pcutoff=args.pcutoff,
         display_radius=args.display_radius,
